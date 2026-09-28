@@ -7,6 +7,7 @@ import {
   Pill,
   ClipboardList,
   FlaskConical,
+  Database,
   Brain,
   Settings,
   Menu,
@@ -32,7 +33,8 @@ interface NavItem {
 const NAVIGATION_ITEMS: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Patients', href: '/patients', icon: Users },
-  { name: 'Consultations', href: '/consultations', icon: Stethoscope, badge: 'Phase 3' },
+  { name: 'Clinical Master Data', href: '/admin/master-data', icon: Database },
+  { name: 'Consultations', href: '/consultations', icon: Stethoscope, badge: 'Phase 4' },
   { name: 'Medicines', href: '/medicines', icon: Pill },
   { name: 'Symptoms', href: '/symptoms', icon: ClipboardList },
   { name: 'Diagnostic Tests', href: '/diagnostic-tests', icon: FlaskConical },

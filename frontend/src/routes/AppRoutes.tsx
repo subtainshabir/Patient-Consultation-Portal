@@ -2,10 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import {
   Stethoscope,
-  Pill,
-  ClipboardList,
-  FlaskConical,
-  Brain,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -25,6 +21,9 @@ import { RegisterPatientPage } from '../pages/patients/RegisterPatientPage';
 import { PatientProfilePage } from '../pages/patients/PatientProfilePage';
 import { EditPatientPage } from '../pages/patients/EditPatientPage';
 import { NewConsultationPlaceholderPage } from '../pages/consultations/NewConsultationPlaceholderPage';
+
+// Phase 3 Master Data Management
+import { MasterDataAdminPage } from '../pages/admin/MasterDataAdminPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -84,80 +83,23 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Medicines Module (Future Phase 4) */}
+        {/* Phase 3: Clinical Master Data System */}
+        <Route path="/admin/master-data" element={<MasterDataAdminPage />} />
         <Route
           path="/medicines"
-          element={
-            <PlaceholderModulePage
-              title="Neurology Medicines Database"
-              subtitle="Master formulary of neurological medications, brand names, generic formulations, and strengths."
-              targetPhase="Phase 4 (Master Data)"
-              icon={Pill}
-              plannedFeatures={[
-                'Predefined formulary of neurological medications',
-                'Support for generic and commercial brand names',
-                'Dynamic manual entry for custom medications during consultation',
-                'Administrative CRUD and pricing / stock tracking foundation',
-              ]}
-            />
-          }
+          element={<Navigate to="/admin/master-data?category=medicines" replace />}
         />
-
-        {/* Symptoms Module (Future Phase 4) */}
         <Route
           path="/symptoms"
-          element={
-            <PlaceholderModulePage
-              title="Clinical Symptoms Master"
-              subtitle="Standardized neurology symptoms dictionary with English and Urdu descriptors."
-              targetPhase="Phase 4 (Master Data)"
-              icon={ClipboardList}
-              plannedFeatures={[
-                'Curated list of neurological presenting complaints',
-                'Dual language support (English & Urdu clinical terminology)',
-                'Severity scoring and onset duration metadata',
-                'Searchable multi-select chips integration',
-              ]}
-            />
-          }
+          element={<Navigate to="/admin/master-data?category=symptoms" replace />}
         />
-
-        {/* Diagnostic Tests Module (Future Phase 4) */}
         <Route
           path="/diagnostic-tests"
-          element={
-            <PlaceholderModulePage
-              title="Diagnostic Tests & Imaging"
-              subtitle="Master directory of neuro-imaging (MRI, CT), EEG, EMG/NCS, and laboratory investigations."
-              targetPhase="Phase 4 (Master Data)"
-              icon={FlaskConical}
-              plannedFeatures={[
-                'Brain MRI, CT Scan, and angiography selections',
-                'Neuro-electrophysiology (EEG, EMG, Nerve Conduction Studies)',
-                'Cerebrospinal fluid (CSF) analysis panels and serology',
-                'Investigation order generation on consultation printout',
-              ]}
-            />
-          }
+          element={<Navigate to="/admin/master-data?category=diagnostic-tests" replace />}
         />
-
-        {/* Neurological Examination Module (Future Phase 4) */}
         <Route
           path="/neurological-examination"
-          element={
-            <PlaceholderModulePage
-              title="Neurological Examination Protocols"
-              subtitle="Structured examination matrix covering cranial nerves, motor, sensory, reflexes, and cerebellar signs."
-              targetPhase="Phase 4 (Master Data)"
-              icon={Brain}
-              plannedFeatures={[
-                'Cranial Nerves (I to XII) assessment checklist',
-                'Motor examination (Tone, Power 0-5, Bulk, Abnormal movements)',
-                'Deep Tendon Reflexes (Biceps, Triceps, Knee, Ankle, Plantars)',
-                'Sensory modalities, Cerebellar coordination, Romberg, and Gait',
-              ]}
-            />
-          }
+          element={<Navigate to="/admin/master-data?category=neurological-examinations" replace />}
         />
 
         {/* Settings Module (Future Phase 5) */}

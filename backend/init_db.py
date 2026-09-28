@@ -63,6 +63,13 @@ def init_database():
             print("Staff user already exists.")
 
         db.commit()
+
+        # Seed Clinical Master Data (Phase 3)
+        from app.db.seed_master_data import seed_clinical_master_data
+        print("Seeding clinical master data...")
+        counts = seed_clinical_master_data(db)
+        print(f"Clinical master data seeded: {counts}")
+
         print("Database initialization and user seeding completed successfully!")
     except Exception as e:
         db.rollback()
