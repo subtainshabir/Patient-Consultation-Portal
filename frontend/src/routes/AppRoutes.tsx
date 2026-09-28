@@ -1,7 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import {
-  Users,
   Stethoscope,
   Pill,
   ClipboardList,
@@ -19,6 +18,13 @@ import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { PlaceholderModulePage } from '../pages/PlaceholderModulePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+
+// Phase 2 Patient Management Pages
+import { PatientListPage } from '../pages/patients/PatientListPage';
+import { RegisterPatientPage } from '../pages/patients/RegisterPatientPage';
+import { PatientProfilePage } from '../pages/patients/PatientProfilePage';
+import { EditPatientPage } from '../pages/patients/EditPatientPage';
+import { NewConsultationPlaceholderPage } from '../pages/consultations/NewConsultationPlaceholderPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -48,26 +54,17 @@ export const AppRoutes: React.FC = () => {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Patients Placeholder */}
+        {/* Phase 2: Patient Management Routes */}
+        <Route path="/patients" element={<PatientListPage />} />
+        <Route path="/patients/new" element={<RegisterPatientPage />} />
+        <Route path="/patients/:patientId" element={<PatientProfilePage />} />
+        <Route path="/patients/:patientId/edit" element={<EditPatientPage />} />
         <Route
-          path="/patients"
-          element={
-            <PlaceholderModulePage
-              title="Patient Registry & Profiles"
-              subtitle="Central repository for registered neurology patients, MR generation, and clinical profiles."
-              targetPhase="Phase 2"
-              icon={Users}
-              plannedFeatures={[
-                'Unique Patient ID (MR) auto-generation',
-                'Patient demographics, CNIC, and contact information',
-                'Fast search by MR number, phone, CNIC, or name',
-                'Comprehensive consultation timeline & history profile',
-              ]}
-            />
-          }
+          path="/patients/:patientId/consultation/new"
+          element={<NewConsultationPlaceholderPage />}
         />
 
-        {/* Consultations Placeholder */}
+        {/* Consultations Module (Future Phase 3) */}
         <Route
           path="/consultations"
           element={
@@ -87,7 +84,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Medicines Placeholder */}
+        {/* Medicines Module (Future Phase 4) */}
         <Route
           path="/medicines"
           element={
@@ -106,7 +103,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Symptoms Placeholder */}
+        {/* Symptoms Module (Future Phase 4) */}
         <Route
           path="/symptoms"
           element={
@@ -125,7 +122,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Diagnostic Tests Placeholder */}
+        {/* Diagnostic Tests Module (Future Phase 4) */}
         <Route
           path="/diagnostic-tests"
           element={
@@ -144,7 +141,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Neurological Examination Placeholder */}
+        {/* Neurological Examination Module (Future Phase 4) */}
         <Route
           path="/neurological-examination"
           element={
@@ -163,7 +160,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Settings Placeholder */}
+        {/* Settings Module (Future Phase 5) */}
         <Route
           path="/settings"
           element={

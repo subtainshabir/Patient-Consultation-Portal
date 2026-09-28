@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { patientService } from '../services/patientService';
 import {
   Users,
   CalendarCheck,
@@ -78,6 +80,12 @@ export const DashboardPage: React.FC = () => {
   const [selectedMultiItems, setSelectedMultiItems] = useState<string[]>(['symptom_1', 'symptom_2']);
   const [showFoundationShowcase, setShowFoundationShowcase] = useState(true);
 
+  // Live real patient statistics from database
+  const { data: patientStats } = useQuery({
+    queryKey: ['dashboard-patient-stats'],
+    queryFn: () => patientService.getPatients({ page: 1, page_size: 1 }),
+  });
+
   // Sample master-data options for SearchableSelect & MultiSelect demonstration
   const sampleMedicineOptions: SearchableOption[] = [
     { value: 'med_1', label: 'Levetiracetam 500mg', category: 'Antiepileptic', description: 'Tablets / Oral' },
@@ -99,7 +107,7 @@ export const DashboardPage: React.FC = () => {
     { id: 'SYS-01', component: 'Authentication & JWT', status: 'Operational', phase: 'Phase 1' },
     { id: 'SYS-02', component: 'Responsive Shell & Drawer', status: 'Operational', phase: 'Phase 1' },
     { id: 'SYS-03', component: 'PostgreSQL DB Architecture', status: 'Connected / Ready', phase: 'Phase 1' },
-    { id: 'SYS-04', component: 'Patient Registry Foundation', status: 'Scheduled', phase: 'Phase 2' },
+    { id: 'SYS-04', component: 'Patient Registry & Profiles', status: 'Operational', phase: 'Phase 2' },
   ];
 
   const tableColumns = [
@@ -154,10 +162,14 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Patients"
-            value="—"
-            description="Patient management available in Phase 2"
+            value={patientStats ? patientStats.total.toString() : '0'}
+            description={
+              patientStats && patientStats.total > 0
+                ? `${patientStats.total} registered in clinical directory`
+                : 'No patients registered yet'
+            }
             icon={Users}
-            phaseBadge="Phase 2"
+            phaseBadge="Active"
           />
           <StatCard
             title="Today's Consultations"
@@ -175,10 +187,14 @@ export const DashboardPage: React.FC = () => {
           />
           <StatCard
             title="Recent Patients"
-            value="—"
-            description="Patient history available in Phase 2"
+            value={patientStats && patientStats.total > 0 ? `${Math.min(patientStats.total, 5)}` : '—'}
+            description={
+              patientStats && patientStats.total > 0
+                ? 'Active patient records on file'
+                : 'Patient history available in Phase 2'
+            }
             icon={Clock}
-            phaseBadge="Phase 2"
+            phaseBadge="Active"
           />
         </div>
       </section>
@@ -189,7 +205,7 @@ export const DashboardPage: React.FC = () => {
           <h2 id="quick-actions-heading" className="text-base font-bold text-navy-950 tracking-tight">
             Quick Actions
           </h2>
-          <span className="text-xs text-navy-500">Upcoming clinical workflows</span>
+          <span className="text-xs text-navy-500">Clinical workflows & registry</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -203,18 +219,20 @@ export const DashboardPage: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-navy-900">Register Patient</h3>
                   <p className="text-xs text-navy-500 mt-0.5 leading-relaxed">
-                    Create unique patient ID, record basic demographics and contact details.
+                    Create unique Patient ID, record basic demographics and contact details.
                   </p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/patients')}
+                onClick={() => navigate('/patients/new')}
                 className="w-full justify-between group-hover:border-medical-500"
               >
                 <span>Register Patient</span>
-                <span className="text-[10px] uppercase font-bold text-navy-400">Phase 2</span>
+                <span className="text-[10px] uppercase font-bold text-medical-700 bg-medical-50 px-1.5 py-0.5 rounded">
+                  Active
+                </span>
               </Button>
             </CardContent>
           </Card>
@@ -229,17 +247,17 @@ export const DashboardPage: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-navy-900">New Consultation</h3>
                   <p className="text-xs text-navy-500 mt-0.5 leading-relaxed">
-                    Vitals, neurological examination, diagnosis, Urdu prescription builder.
+                    Select a patient from the directory to start a clinical consultation.
                   </p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/consultations')}
+                onClick={() => navigate('/patients')}
                 className="w-full justify-between group-hover:border-medical-500"
               >
-                <span>New Consultation</span>
+                <span>Select Patient</span>
                 <span className="text-[10px] uppercase font-bold text-navy-400">Phase 3</span>
               </Button>
             </CardContent>
@@ -255,7 +273,7 @@ export const DashboardPage: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-navy-900">Search Patient</h3>
                   <p className="text-xs text-navy-500 mt-0.5 leading-relaxed">
-                    Fast lookup by MR number, CNIC, mobile number, or patient name.
+                    Fast lookup by Patient ID (DRN-XXXXXX), CNIC, mobile, or name.
                   </p>
                 </div>
               </div>
@@ -265,8 +283,10 @@ export const DashboardPage: React.FC = () => {
                 onClick={() => navigate('/patients')}
                 className="w-full justify-between group-hover:border-medical-500"
               >
-                <span>Search Patient</span>
-                <span className="text-[10px] uppercase font-bold text-navy-400">Phase 2</span>
+                <span>Search Directory</span>
+                <span className="text-[10px] uppercase font-bold text-medical-700 bg-medical-50 px-1.5 py-0.5 rounded">
+                  Active
+                </span>
               </Button>
             </CardContent>
           </Card>
