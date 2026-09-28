@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#0D9488"/>
+  <!-- Neural brain nodes & pathways with clinical cross symbol -->
+  <path d="M32 14V50M14 32H50" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.25"/>
+  <!-- Brain hemisphere stylized outline -->
+  <path d="M32 18C26 18 20 22 20 28C20 31 21.5 33.5 23 35C20.5 37 19 40 19 43C19 47 23 49 28 48C30 48 31.5 47 32 46" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 18C38 18 44 22 44 28C44 31 42.5 33.5 41 35C43.5 37 45 40 45 43C45 47 41 49 36 48C34 48 32.5 47 32 46" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <!-- Central synaptic pulse dot -->
+  <circle cx="32" cy="32" r="3.5" fill="#FFFFFF"/>
+  <circle cx="23" cy="27" r="2" fill="#5EEAD4"/>
+  <circle cx="41" cy="27" r="2" fill="#5EEAD4"/>
+</svg>
