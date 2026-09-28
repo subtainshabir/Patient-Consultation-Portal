@@ -12,6 +12,12 @@ from app.models.master_data import (
     MedicineInstruction,
     FollowUpOption,
 )
+from app.models.consultation import (
+    Consultation,
+    ConsultationVitals,
+    ConsultationSymptom,
+    ConsultationExamination,
+)
 
 __all__ = [
     "Base",
@@ -28,4 +34,9 @@ __all__ = [
     "MedicineDosage",
     "MedicineInstruction",
     "FollowUpOption",
+    "Consultation",
+    "ConsultationVitals",
+    "ConsultationSymptom",
+    "ConsultationExamination",
 ]
+

@@ -205,9 +205,21 @@ def seed_clinical_master_data(db: Session) -> dict:
     for idx, opt in enumerate(["Normal", "Impaired", "Dysphagia", "Aspiration concern", "Unable to assess", "Not tested"], 1):
         neuro_exam_data.append({"category": "Swallowing Function", "item_name": "Swallowing", "name": opt, "sort_order": idx})
 
+    for idx, opt in enumerate(["Normal", "Decreased sensation (Hypesthesia)", "Loss of sensation (Anesthesia)", "Tingling / Paresthesia", "Hyperesthesia", "Trigeminal distribution (V1/V2/V3)", "Not tested", "Other"], 1):
+        neuro_exam_data.append({"category": "Facial Sensation", "item_name": "Facial Sensation", "name": opt, "sort_order": idx})
+
+    # General Reflexes option
+    for idx, val in enumerate(["Normal (+2)", "Reduced (+1)", "Absent (0)", "Brisk (+3)", "Hyperreflexia / Clonus (+4)", "Asymmetric", "Not tested"], 1):
+        neuro_exam_data.append({"category": "Reflexes", "item_name": "General Reflexes", "name": val, "sort_order": idx})
+
+    # General Plantar Response option
+    for idx, val in enumerate(["Flexor (Normal / Downward)", "Extensor (Babinski Positive / Upward)", "Equivocal", "Absent", "Not tested"], 1):
+        neuro_exam_data.append({"category": "Plantar Response", "item_name": "General Plantar", "name": val, "sort_order": idx})
+
     # Generic Done/Not Done status
     for idx, opt in enumerate(["Done", "Not Done"], 1):
         neuro_exam_data.append({"category": "Examination Status", "item_name": "Protocol", "name": opt, "sort_order": idx})
+
 
     added_neuro = 0
     for ne in neuro_exam_data:

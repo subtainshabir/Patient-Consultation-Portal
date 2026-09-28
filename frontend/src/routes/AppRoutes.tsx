@@ -20,7 +20,7 @@ import { PatientListPage } from '../pages/patients/PatientListPage';
 import { RegisterPatientPage } from '../pages/patients/RegisterPatientPage';
 import { PatientProfilePage } from '../pages/patients/PatientProfilePage';
 import { EditPatientPage } from '../pages/patients/EditPatientPage';
-import { NewConsultationPlaceholderPage } from '../pages/consultations/NewConsultationPlaceholderPage';
+import { NewConsultationPage } from '../pages/consultations/NewConsultationPage';
 
 // Phase 3 Master Data Management
 import { MasterDataAdminPage } from '../pages/admin/MasterDataAdminPage';
@@ -60,8 +60,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="/patients/:patientId/edit" element={<EditPatientPage />} />
         <Route
           path="/patients/:patientId/consultation/new"
-          element={<NewConsultationPlaceholderPage />}
+          element={<NewConsultationPage />}
         />
+
 
         {/* Consultations Module (Future Phase 3) */}
         <Route

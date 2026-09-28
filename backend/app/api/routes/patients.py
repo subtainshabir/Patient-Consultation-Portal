@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from math import ceil
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -14,6 +14,7 @@ from app.schemas.patient import (
     PatientStatusUpdate,
     DuplicatePatientWarning,
 )
+from app.schemas.consultation import ConsultationSummaryResponse
 from app.services.patient_service import (
     create_patient,
     get_patient_by_patient_id,
@@ -23,8 +24,13 @@ from app.services.patient_service import (
     check_duplicate_patient,
     DuplicatePatientException,
 )
+from app.services.consultation_service import (
+    list_patient_consultations,
+    build_consultation_summary,
+)
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
+
 
 
 @router.post("", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
@@ -177,3 +183,23 @@ def toggle_patient_status(
             detail=f"Patient with ID '{patient_id}' not found."
         )
     return PatientResponse.model_validate(updated)
+
+
+@router.get("/{patient_id}/consultations", response_model=List[ConsultationSummaryResponse])
+def get_patient_consultations(
+    patient_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get all previous clinical consultations for a given patient, ordered newest first.
+    """
+    patient = get_patient_by_patient_id(db, patient_id)
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID '{patient_id}' not found."
+        )
+    consultations = list_patient_consultations(db, patient_id)
+    return [build_consultation_summary(c) for c in consultations]
+

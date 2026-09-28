@@ -16,16 +16,22 @@ import {
   PowerOff,
   RotateCcw,
   ChevronDown,
+  Activity,
+  Eye,
 } from 'lucide-react';
 
+
 import { patientService } from '../../services/patientService';
+import { consultationService } from '../../services/consultationService';
 import { useToast } from '../../hooks/useToast';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { SkeletonCard } from '../../components/ui/LoadingSkeleton';
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog';
+import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
 import { cn } from '../../utils/cn';
+
 
 export const PatientProfilePage: React.FC = () => {
   const { patientId } = useParams<{ patientId: string }>();
@@ -36,6 +42,7 @@ export const PatientProfilePage: React.FC = () => {
   const [copiedMobile, setCopiedMobile] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+  const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(null);
 
   // Fetch patient profile
   const {
@@ -47,6 +54,17 @@ export const PatientProfilePage: React.FC = () => {
     queryFn: () => patientService.getPatientById(patientId!),
     enabled: !!patientId,
   });
+
+  // Fetch consultation history
+  const {
+    data: consultationHistory = [],
+    isLoading: isHistoryLoading,
+  } = useQuery({
+    queryKey: ['patient-consultations', patientId],
+    queryFn: () => consultationService.getPatientConsultations(patientId!),
+    enabled: !!patientId,
+  });
+
 
   // Mutation to toggle active status
   const statusMutation = useMutation({
@@ -383,29 +401,127 @@ export const PatientProfilePage: React.FC = () => {
                 + New Consultation
               </Button>
             </CardHeader>
-            <CardContent className="p-6">
-              {/* Clean Consultation Empty State (Section 19 & 47) */}
-              <EmptyState
-                icon={Stethoscope}
-                title="No consultation history yet"
-                description="This patient has not had a consultation recorded."
-                action={
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={() =>
-                      navigate(`/patients/${patient.patient_id}/consultation/new`)
-                    }
-                    leftIcon={<Stethoscope className="w-4 h-4" />}
-                  >
-                    + New Consultation
-                  </Button>
-                }
-              />
+            <CardContent className="p-4 sm:p-6">
+              {isHistoryLoading ? (
+                <div className="py-8 text-center text-navy-500 flex flex-col items-center justify-center space-y-2">
+                  <Clock className="w-6 h-6 animate-spin text-medical-600" />
+                  <p className="text-xs">Loading consultation records...</p>
+                </div>
+              ) : consultationHistory.length === 0 ? (
+                <EmptyState
+                  icon={Stethoscope}
+                  title="No consultation history yet"
+                  description="This patient has not had a consultation recorded."
+                  action={
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={() =>
+                        navigate(`/patients/${patient.patient_id}/consultation/new`)
+                      }
+                      leftIcon={<Stethoscope className="w-4 h-4" />}
+                    >
+                      + New Consultation
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-navy-500 font-medium px-1">
+                    <span>
+                      {consultationHistory.length}{' '}
+                      {consultationHistory.length === 1 ? 'recorded consultation' : 'recorded consultations'}
+                    </span>
+                    <span className="text-[11px] text-navy-400">Ordered by date (newest first)</span>
+                  </div>
+
+                  <div className="divide-y divide-navy-100 rounded-xl border border-navy-200 overflow-hidden bg-white">
+                    {consultationHistory.map((item) => {
+                      const dateObj = new Date(item.consultation_date);
+                      const formattedDate = dateObj.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      });
+
+                      return (
+                        <div
+                          key={item.consultation_id}
+                          className="p-4 hover:bg-navy-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                        >
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-xs font-bold text-navy-950">
+                                {item.consultation_id}
+                              </span>
+                              <span className="text-xs text-navy-300">•</span>
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-navy-800">
+                                <Calendar className="w-3.5 h-3.5 text-medical-600" />
+                                {formattedDate}
+                              </span>
+                              {item.patient_state_name && (
+                                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-medical-50 border border-medical-200 text-medical-800">
+                                  {item.patient_state_name}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Vitals & Summary Badges */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
+                              {item.bp_formatted && (
+                                <span className="inline-flex items-center gap-1 font-mono text-navy-800 font-medium">
+                                  <Activity className="w-3 h-3 text-medical-600" />
+                                  {item.bp_formatted}
+                                </span>
+                              )}
+                              {item.pulse_rate && <span>{item.pulse_rate} bpm</span>}
+                              {item.temperature && <span>{item.temperature} °C</span>}
+                              {item.symptom_count > 0 && (
+                                <span>
+                                  {item.symptom_count}{' '}
+                                  {item.symptom_count === 1 ? 'symptom' : 'symptoms'}
+                                </span>
+                              )}
+                              {item.mmse_score !== null && item.mmse_score !== undefined && (
+                                <span className="font-semibold text-navy-700">
+                                  MMSE: {item.mmse_score}/30
+                                </span>
+                              )}
+                              {item.gcs_score !== null && item.gcs_score !== undefined && (
+                                <span className="font-semibold text-navy-700">
+                                  GCS: {item.gcs_score}/15
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedConsultationId(item.consultation_id)}
+                            leftIcon={<Eye className="w-3.5 h-3.5" />}
+                            className="shrink-0 text-xs self-start sm:self-auto"
+                          >
+                            View Record
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* ─── CONSULTATION DETAIL MODAL ─── */}
+      <ConsultationDetailModal
+        consultationId={selectedConsultationId}
+        isOpen={!!selectedConsultationId}
+        onClose={() => setSelectedConsultationId(null)}
+      />
+
 
       {/* ─── DEACTIVATION CONFIRMATION DIALOG (Section 23) ─── */}
       <ConfirmationDialog
