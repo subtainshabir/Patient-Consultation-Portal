@@ -9,6 +9,8 @@ export interface SaveConsultationBarProps {
   hasErrors?: boolean;
   symptomCount?: number;
   examinationsCount?: number;
+  diagnosticTestCount?: number;
+  isEditMode?: boolean;
   onCancel?: () => void;
 }
 
@@ -19,6 +21,8 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
   hasErrors = false,
   symptomCount = 0,
   examinationsCount = 0,
+  diagnosticTestCount = 0,
+  isEditMode = false,
   onCancel,
 }) => {
   return (
@@ -48,7 +52,7 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
             <span className="text-navy-300 hidden sm:inline">•</span>
 
             <span className="hidden sm:inline text-navy-600">
-              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings
+              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings, {diagnosticTestCount} tests
             </span>
 
           </div>
@@ -78,7 +82,13 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
             className="w-full sm:w-auto shadow-md font-bold px-6 text-sm"
             id="save-consultation-btn"
           >
-            {isSaving ? 'Saving Consultation...' : 'Save Consultation'}
+            {isSaving
+              ? isEditMode
+                ? 'Updating Consultation...'
+                : 'Saving Consultation...'
+              : isEditMode
+              ? 'Update Consultation'
+              : 'Save Consultation'}
           </Button>
         </div>
       </div>

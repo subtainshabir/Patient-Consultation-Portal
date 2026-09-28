@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Stethoscope,
@@ -7,6 +8,12 @@ import {
   AlertCircle,
   User,
   Clock,
+  FlaskConical,
+  ClipboardCheck,
+  Eye,
+  HeartHandshake,
+  Edit3,
+  Calendar,
 } from 'lucide-react';
 
 import { Dialog, DialogHeader, DialogContent, DialogFooter } from '../ui/Dialog';
@@ -24,6 +31,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
   isOpen,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const { data: consultation, isLoading, error } = useQuery({
     queryKey: ['consultation', consultationId],
     queryFn: () => consultationService.getConsultation(consultationId!),
@@ -287,14 +295,140 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
                 </p>
               </div>
             )}
+
+            {/* ─── Phase 5: Diagnostic Tests ─── */}
+            {consultation.diagnostic_tests && consultation.diagnostic_tests.length > 0 && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                    <FlaskConical className="w-3.5 h-3.5 text-medical-600" />
+                    <span>Diagnostic Tests ({consultation.diagnostic_tests.length} tests)</span>
+                  </h4>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  {consultation.diagnostic_tests.map((test, idx) => {
+                    const statusClass =
+                      test.status === 'Completed'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : test.status === 'Reviewed'
+                        ? 'bg-purple-50 text-purple-800 border-purple-200'
+                        : test.status === 'Pending'
+                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200';
+
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl border border-navy-100 bg-navy-50/40 space-y-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-navy-900">{test.test_name}</span>
+                            {test.category && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-white border border-navy-200 text-navy-600 font-medium">
+                                {test.category}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold ${statusClass}`}>
+                            {test.status}
+                          </span>
+                        </div>
+
+                        {test.clinical_indication && (
+                          <div className="text-[11px] text-navy-700">
+                            <span className="font-semibold text-navy-500">Indication: </span>
+                            <span>{test.clinical_indication}</span>
+                          </div>
+                        )}
+
+                        {test.result && (
+                          <div className="text-[11px] text-navy-800 bg-white p-2 rounded-lg border border-navy-100">
+                            <span className="font-semibold text-navy-500 block mb-0.5">Findings / Result:</span>
+                            <p className="whitespace-pre-wrap">{test.result}</p>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center justify-between text-[11px] text-navy-500 pt-1">
+                          {test.result_date && (
+                            <span className="flex items-center gap-1 font-mono">
+                              <Calendar className="w-3 h-3 text-navy-400" />
+                              Result Date: {new Date(test.result_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {test.doctor_notes && (
+                            <span className="italic">Note: {test.doctor_notes}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ─── Phase 5: Clinical Assessment ─── */}
+            {consultation.clinical_description && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5 text-medical-600" />
+                  <span>Clinical Assessment & Diagnostic Synthesis</span>
+                </span>
+                <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed bg-navy-50/50 p-3 rounded-lg border border-navy-100">
+                  {consultation.clinical_description}
+                </p>
+              </div>
+            )}
+
+            {/* ─── Phase 5: Additional Examination ─── */}
+            {consultation.additional_examination && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-medical-600" />
+                  <span>Additional Examination Findings</span>
+                </span>
+                <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed bg-navy-50/50 p-3 rounded-lg border border-navy-100">
+                  {consultation.additional_examination}
+                </p>
+              </div>
+            )}
+
+            {/* ─── Phase 5: Treatment Plan ─── */}
+            {consultation.treatment_plan && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                  <HeartHandshake className="w-3.5 h-3.5 text-medical-600" />
+                  <span>Treatment Plan & Care Instructions</span>
+                </span>
+                <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed bg-navy-50/50 p-3 rounded-lg border border-navy-100">
+                  {consultation.treatment_plan}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
 
-      <DialogFooter>
+      <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
         <Button variant="outline" size="sm" onClick={onClose}>
           Close
         </Button>
+
+        {consultation && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onClose();
+              const pId = consultation.patient?.patient_id || consultation.patient_id;
+              navigate(`/patients/${pId}/consultation/${consultation.consultation_id}/edit`);
+            }}
+            leftIcon={<Edit3 className="w-3.5 h-3.5" />}
+          >
+            Edit Consultation
+          </Button>
+        )}
       </DialogFooter>
     </Dialog>
   );

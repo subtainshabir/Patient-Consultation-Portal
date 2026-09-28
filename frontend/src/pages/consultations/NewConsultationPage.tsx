@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
 
-
 import { patientService } from '../../services/patientService';
 import { consultationService } from '../../services/consultationService';
 import { useToast } from '../../hooks/useToast';
@@ -17,6 +16,10 @@ import { PatientStateSection } from '../../components/consultation/PatientStateS
 import { NeurologicalExamSection } from '../../components/consultation/NeurologicalExamSection';
 import { MentalStatusScoresCard } from '../../components/consultation/MentalStatusScoresCard';
 import { AdditionalObservationsCard } from '../../components/consultation/AdditionalObservationsCard';
+import { DiagnosticTestsSection } from '../../components/consultation/DiagnosticTestsSection';
+import { ClinicalAssessmentSection } from '../../components/consultation/ClinicalAssessmentSection';
+import { AdditionalExaminationSection } from '../../components/consultation/AdditionalExaminationSection';
+import { TreatmentPlanSection } from '../../components/consultation/TreatmentPlanSection';
 import { SaveConsultationBar } from '../../components/consultation/SaveConsultationBar';
 import { ConsultationSuccessModal } from '../../components/consultation/ConsultationSuccessModal';
 import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
@@ -30,11 +33,17 @@ import type {
   ConsultationVitals,
   ConsultationSymptom,
   ConsultationExamination,
+  ConsultationDiagnosticTest,
   ConsultationCreatePayload,
 } from '../../types/consultation';
 
 export const NewConsultationPage: React.FC = () => {
-  const { patientId } = useParams<{ patientId: string }>();
+  const { patientId, consultationId } = useParams<{
+    patientId: string;
+    consultationId?: string;
+  }>();
+  const isEditMode = Boolean(consultationId);
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { success, error: toastError } = useToast();
@@ -64,7 +73,6 @@ export const NewConsultationPage: React.FC = () => {
     return '';
   }, [serverDateData?.formatted_date]);
 
-
   // 3. Fetch Patient Previous Consultations (for medical history)
   const {
     data: patientHistory = [],
@@ -75,6 +83,16 @@ export const NewConsultationPage: React.FC = () => {
     enabled: !!patientId,
   });
 
+  // 4. Fetch Existing Consultation if in Edit Mode
+  const {
+    data: existingConsultation,
+    isLoading: isExistingLoading,
+  } = useQuery({
+    queryKey: ['consultation', consultationId],
+    queryFn: () => consultationService.getConsultation(consultationId!),
+    enabled: isEditMode && !!consultationId,
+  });
+
   // UI state modals
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isUnsavedDialogOpen, setIsUnsavedDialogOpen] = useState(false);
@@ -82,7 +100,7 @@ export const NewConsultationPage: React.FC = () => {
   const [savedConsultationId, setSavedConsultationId] = useState<string>('');
   const [selectedHistoryDetailId, setSelectedHistoryDetailId] = useState<string | null>(null);
 
-  // Form structured state
+  // Form structured state (Phases 4 & 5)
   const [vitals, setVitals] = useState<ConsultationVitals>({
     systolic_bp: null,
     diastolic_bp: null,
@@ -106,8 +124,63 @@ export const NewConsultationPage: React.FC = () => {
   const [gcsScore, setGcsScore] = useState<number | null>(null);
   const [additionalObservations, setAdditionalObservations] = useState<string>('');
 
+  // Phase 5 Fields
+  const [diagnosticTests, setDiagnosticTests] = useState<ConsultationDiagnosticTest[]>([]);
+  const [clinicalDescription, setClinicalDescription] = useState<string>('');
+  const [additionalExamination, setAdditionalExamination] = useState<string>('');
+  const [treatmentPlan, setTreatmentPlan] = useState<string>('');
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState<boolean>(false);
+
+  // Populate existing consultation fields if in Edit Mode
+  useEffect(() => {
+    if (existingConsultation) {
+      if (existingConsultation.vitals) {
+        setVitals(existingConsultation.vitals);
+      }
+      if (existingConsultation.symptoms) {
+        setSymptoms(existingConsultation.symptoms);
+      }
+      if (existingConsultation.patient_state_name) {
+        setPatientStateName(existingConsultation.patient_state_name);
+      }
+      if (existingConsultation.patient_state_id !== undefined) {
+        setPatientStateId(existingConsultation.patient_state_id);
+      }
+      if (existingConsultation.symptom_notes) {
+        setSymptomNotes(existingConsultation.symptom_notes);
+      }
+      if (existingConsultation.power_text) {
+        setPowerText(existingConsultation.power_text);
+      }
+      if (existingConsultation.examinations) {
+        setExaminations(existingConsultation.examinations);
+      }
+      if (existingConsultation.additional_observations) {
+        setAdditionalObservations(existingConsultation.additional_observations);
+      }
+      if (existingConsultation.mmse_score !== undefined) {
+        setMmseScore(existingConsultation.mmse_score);
+      }
+      if (existingConsultation.gcs_score !== undefined) {
+        setGcsScore(existingConsultation.gcs_score);
+      }
+      if (existingConsultation.diagnostic_tests) {
+        setDiagnosticTests(existingConsultation.diagnostic_tests);
+      }
+      if (existingConsultation.clinical_description) {
+        setClinicalDescription(existingConsultation.clinical_description);
+      }
+      if (existingConsultation.additional_examination) {
+        setAdditionalExamination(existingConsultation.additional_examination);
+      }
+      if (existingConsultation.treatment_plan) {
+        setTreatmentPlan(existingConsultation.treatment_plan);
+      }
+      setIsDirty(false);
+    }
+  }, [existingConsultation]);
 
   // Track user edits to mark form dirty
   const markDirty = useCallback(() => {
@@ -127,16 +200,27 @@ export const NewConsultationPage: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Save consultation mutation
+  // Save / Update consultation mutation
   const saveMutation = useMutation({
-    mutationFn: (payload: ConsultationCreatePayload) =>
-      consultationService.createConsultation(payload),
-    onSuccess: (created) => {
+    mutationFn: (payload: ConsultationCreatePayload) => {
+      if (isEditMode && consultationId) {
+        return consultationService.updateConsultation(consultationId, payload);
+      }
+      return consultationService.createConsultation(payload);
+    },
+    onSuccess: (saved) => {
       setIsDirty(false);
-      setSavedConsultationId(created.consultation_id);
+      setSavedConsultationId(saved.consultation_id);
       setIsSuccessModalOpen(true);
       queryClient.invalidateQueries({ queryKey: ['patient-consultations', patientId] });
-      success('Consultation record saved successfully.', 'Consultation Saved');
+      queryClient.invalidateQueries({ queryKey: ['consultation', saved.consultation_id] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      success(
+        isEditMode
+          ? `Consultation ${saved.consultation_id} updated successfully.`
+          : `Consultation ${saved.consultation_id} recorded successfully.`,
+        isEditMode ? 'Consultation Updated' : 'Consultation Saved'
+      );
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Unable to save consultation.';
@@ -206,7 +290,10 @@ export const NewConsultationPage: React.FC = () => {
 
     // Filter examinations that have either status 'Not Done' or a finding/observation
     const validExams = examinations.filter(
-      (e) => e.status === 'Not Done' || (e.finding && e.finding.trim() !== '') || (e.observation && e.observation.trim() !== '')
+      (e) =>
+        e.status === 'Not Done' ||
+        (e.finding && e.finding.trim() !== '') ||
+        (e.observation && e.observation.trim() !== '')
     );
 
     const payload: ConsultationCreatePayload = {
@@ -218,9 +305,13 @@ export const NewConsultationPage: React.FC = () => {
       mmse_score: mmseScore,
       gcs_score: gcsScore,
       additional_observations: additionalObservations.trim() || null,
+      clinical_description: clinicalDescription.trim() || null,
+      additional_examination: additionalExamination.trim() || null,
+      treatment_plan: treatmentPlan.trim() || null,
       vitals: vitals,
       symptoms: symptoms,
       examinations: validExams,
+      diagnostic_tests: diagnosticTests,
     };
 
     saveMutation.mutate(payload);
@@ -235,7 +326,7 @@ export const NewConsultationPage: React.FC = () => {
     }
   };
 
-  if (isPatientLoading) {
+  if (isPatientLoading || (isEditMode && isExistingLoading)) {
     return (
       <div className="max-w-6xl mx-auto space-y-6 animate-pulse p-4">
         <SkeletonCard className="h-28" />
@@ -264,7 +355,6 @@ export const NewConsultationPage: React.FC = () => {
     );
   }
 
-
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 animate-in fade-in duration-200">
       {/* ─── 1. Consultation Header ─── */}
@@ -277,7 +367,22 @@ export const NewConsultationPage: React.FC = () => {
         historyCount={patientHistory.length}
       />
 
-      {/* ─── 2. Vital Signs ─── */}
+      {/* Edit Mode Banner */}
+      {isEditMode && existingConsultation && (
+        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">Editing Consultation:</span>
+            <span className="font-mono font-semibold">{existingConsultation.consultation_id}</span>
+            <span className="text-amber-500">•</span>
+            <span>Recorded on {new Date(existingConsultation.consultation_date).toLocaleDateString()}</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-amber-200/70 font-semibold text-[11px]">
+            Edit Mode
+          </span>
+        </div>
+      )}
+
+      {/* ─── 2. Vital Signs (Phase 4) ─── */}
       <VitalsSection
         vitals={vitals}
         onChange={(newVitals) => {
@@ -287,7 +392,7 @@ export const NewConsultationPage: React.FC = () => {
         errors={formErrors}
       />
 
-      {/* ─── 3. Fall Risk Assessment ─── */}
+      {/* ─── 3. Fall Risk Assessment (Phase 4) ─── */}
       <FallRiskCard
         status={vitals.fall_risk_status}
         notes={vitals.fall_risk_notes}
@@ -301,7 +406,7 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 4. Symptom Analysis ─── */}
+      {/* ─── 4. Symptom Analysis (Phase 4) ─── */}
       <SymptomAnalysisSection
         symptoms={symptoms}
         symptomNotes={symptomNotes}
@@ -315,7 +420,7 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 5. Patient Clinical State ─── */}
+      {/* ─── 5. Patient Clinical State (Phase 4) ─── */}
       <PatientStateSection
         selectedStateName={patientStateName}
         selectedStateId={patientStateId}
@@ -326,7 +431,7 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 6. Neurological Examination Matrix ─── */}
+      {/* ─── 6. Neurological Examination Matrix (Phase 4) ─── */}
       <NeurologicalExamSection
         examinations={examinations}
         onChangeExaminations={(newExams) => {
@@ -340,7 +445,7 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 7. Additional Observations ─── */}
+      {/* ─── 7. Additional Observations (Phase 4) ─── */}
       <AdditionalObservationsCard
         observations={additionalObservations}
         onChange={(val) => {
@@ -349,7 +454,7 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 8. Mental Status Scores ─── */}
+      {/* ─── 8. Mental Status Scores (Phase 4) ─── */}
       <MentalStatusScoresCard
         mmseScore={mmseScore}
         gcsScore={gcsScore}
@@ -364,7 +469,43 @@ export const NewConsultationPage: React.FC = () => {
         errors={formErrors}
       />
 
-      {/* ─── 9. Sticky Save Action Bar ─── */}
+      {/* ─── 9. Diagnostic Tests (Phase 5) ─── */}
+      <DiagnosticTestsSection
+        tests={diagnosticTests}
+        onChange={(newTests) => {
+          setDiagnosticTests(newTests);
+          markDirty();
+        }}
+      />
+
+      {/* ─── 10. Clinical Assessment (Phase 5) ─── */}
+      <ClinicalAssessmentSection
+        value={clinicalDescription}
+        onChange={(val) => {
+          setClinicalDescription(val);
+          markDirty();
+        }}
+      />
+
+      {/* ─── 11. Additional Examination (Phase 5) ─── */}
+      <AdditionalExaminationSection
+        value={additionalExamination}
+        onChange={(val) => {
+          setAdditionalExamination(val);
+          markDirty();
+        }}
+      />
+
+      {/* ─── 12. Treatment Plan (Phase 5) ─── */}
+      <TreatmentPlanSection
+        value={treatmentPlan}
+        onChange={(val) => {
+          setTreatmentPlan(val);
+          markDirty();
+        }}
+      />
+
+      {/* ─── 13. Sticky Save Action Bar ─── */}
       <SaveConsultationBar
         onSave={handleSave}
         isSaving={saveMutation.isPending}
@@ -372,9 +513,10 @@ export const NewConsultationPage: React.FC = () => {
         hasErrors={Object.keys(formErrors).length > 0}
         symptomCount={symptoms.length}
         examinationsCount={examinations.length}
+        diagnosticTestCount={diagnosticTests.length}
+        isEditMode={isEditMode}
         onCancel={handleBack}
       />
-
 
       {/* ─── Medical History Drawer ─── */}
       <MedicalHistoryDrawer
@@ -422,7 +564,7 @@ export const NewConsultationPage: React.FC = () => {
           navigate(`/patients/${patient.patient_id}`);
         }}
         title="Unsaved Changes"
-        message="You have unsaved consultation information. Are you sure you want to leave?"
+        message="You have unsaved clinical consultation information. Are you sure you want to leave without saving?"
         confirmLabel="Leave"
         cancelLabel="Stay"
         isDestructive={false}

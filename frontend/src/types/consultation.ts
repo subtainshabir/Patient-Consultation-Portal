@@ -39,6 +39,23 @@ export interface ConsultationExamination {
   observation?: string | null;
 }
 
+export type DiagnosticTestStatus = 'Ordered' | 'Pending' | 'Completed' | 'Reviewed';
+
+export interface ConsultationDiagnosticTest {
+  id?: number;
+  consultation_id?: number;
+  diagnostic_test_id?: number | null;
+  test_name: string;
+  category?: string | null;
+  status: DiagnosticTestStatus;
+  clinical_indication?: string | null;
+  result?: string | null;
+  result_date?: string | null;
+  doctor_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Consultation {
   id: number;
   consultation_id: string; // e.g. CNS-20260929-0001
@@ -52,12 +69,16 @@ export interface Consultation {
   mmse_score?: number | null;
   gcs_score?: number | null;
   additional_observations?: string | null;
+  clinical_description?: string | null;
+  additional_examination?: string | null;
+  treatment_plan?: string | null;
   created_at: string;
   updated_at: string;
   patient?: Patient;
   vitals?: ConsultationVitals | null;
   symptoms: ConsultationSymptom[];
   examinations: ConsultationExamination[];
+  diagnostic_tests: ConsultationDiagnosticTest[];
 }
 
 export interface ConsultationSummary {
@@ -69,6 +90,7 @@ export interface ConsultationSummary {
   consultation_date: string;
   patient_state_name?: string | null;
   symptom_count: number;
+  diagnostic_test_count?: number;
   mmse_score?: number | null;
   gcs_score?: number | null;
   has_vitals: boolean;
@@ -87,9 +109,13 @@ export interface ConsultationCreatePayload {
   mmse_score?: number | null;
   gcs_score?: number | null;
   additional_observations?: string | null;
+  clinical_description?: string | null;
+  additional_examination?: string | null;
+  treatment_plan?: string | null;
   vitals?: ConsultationVitals;
   symptoms: ConsultationSymptom[];
   examinations: ConsultationExamination[];
+  diagnostic_tests?: ConsultationDiagnosticTest[];
 }
 
 export interface ServerDateResponse {

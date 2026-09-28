@@ -215,3 +215,148 @@ def test_create_consultation_validation_errors(auth_headers, sample_patient):
         json={"patient_id": "NON-EXISTENT-PT-999"},
     )
     assert res4.status_code == 404
+
+
+def test_phase5_diagnostic_tests_and_assessment(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    payload = {
+        "patient_id": patient_id,
+        "patient_state_name": "Stable",
+        "clinical_description": "48yo male presenting with subacute headaches. Clinical impression: tension-type headache with migrainous features.",
+        "additional_examination": "General exam: Hydrated, normotensive, no peripheral edema. Cardiorespiratory exam normal.",
+        "treatment_plan": "Reassurance, sleep hygiene, hydration, stress management. Await MRI results before follow-up.",
+        "diagnostic_tests": [
+            {
+                "test_name": "MRI Brain",
+                "category": "Imaging",
+                "status": "Ordered",
+                "clinical_indication": "Evaluation of recurrent episodic headaches",
+            },
+            {
+                "test_name": "New Autoimmune Neuro Panel",  # Custom unlisted test
+                "category": "Laboratory",
+                "status": "Pending",
+            },
+            {
+                "test_name": "CBC",
+                "category": "Laboratory",
+                "status": "Completed",
+                "clinical_indication": "Routine baseline profile",
+                "result": "Hb: 14.5 g/dL, TLC: 7,200, Platelets: 250,000",
+                "result_date": "2026-09-29T10:00:00Z",
+                "doctor_notes": "Hematology parameters within reference range",
+            },
+        ],
+    }
+
+    res = client.post("/api/consultations", headers=auth_headers, json=payload)
+    assert res.status_code == 201
+    created = res.json()
+    c_id = created["consultation_id"]
+
+    # Verify Phase 5 text fields
+    assert created["clinical_description"] == payload["clinical_description"]
+    assert created["additional_examination"] == payload["additional_examination"]
+    assert created["treatment_plan"] == payload["treatment_plan"]
+
+    # Verify diagnostic tests
+    tests = created["diagnostic_tests"]
+    assert len(tests) == 3
+    test_names = [t["test_name"] for t in tests]
+    assert "MRI Brain" in test_names
+    assert "New Autoimmune Neuro Panel" in test_names
+    assert "CBC" in test_names
+
+    cbc_test = next(t for t in tests if t["test_name"] == "CBC")
+    assert cbc_test["status"] == "Completed"
+    assert "14.5 g/dL" in cbc_test["result"]
+    assert cbc_test["doctor_notes"] == "Hematology parameters within reference range"
+
+    # Verify custom test auto-registered into master data
+    master_res = client.get("/api/master-data/diagnostic-tests?search=New Autoimmune Neuro Panel", headers=auth_headers)
+    assert master_res.status_code == 200
+    assert master_res.json()["total"] >= 1
+
+    # Verify GET returns all Phase 5 data
+    get_res = client.get(f"/api/consultations/{c_id}", headers=auth_headers)
+    assert get_res.status_code == 200
+    retrieved = get_res.json()
+    assert len(retrieved["diagnostic_tests"]) == 3
+    assert retrieved["treatment_plan"] == payload["treatment_plan"]
+
+
+def test_phase5_edit_consultation(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    # 1. Create consultation
+    initial_payload = {
+        "patient_id": patient_id,
+        "patient_state_name": "Stable",
+        "clinical_description": "Initial assessment.",
+        "treatment_plan": "Initial treatment plan.",
+        "diagnostic_tests": [
+            {
+                "test_name": "EEG",
+                "category": "Neurological",
+                "status": "Ordered",
+            }
+        ],
+    }
+    create_res = client.post("/api/consultations", headers=auth_headers, json=initial_payload)
+    assert create_res.status_code == 201
+    c_id = create_res.json()["consultation_id"]
+
+    # 2. Update consultation via PUT
+    updated_payload = {
+        "patient_id": patient_id,
+        "patient_state_name": "Improving",
+        "clinical_description": "Updated clinical assessment: Significant improvement reported.",
+        "additional_examination": "Neck supple, Kernig sign negative.",
+        "treatment_plan": "Continue current supportive measures. Review in 1 month.",
+        "diagnostic_tests": [
+            {
+                "test_name": "EEG",
+                "category": "Neurological",
+                "status": "Reviewed",
+                "result": "Normal background activity with no epileptiform discharges.",
+                "doctor_notes": "Reassuring study.",
+            },
+            {
+                "test_name": "MRI Brain",
+                "category": "Imaging",
+                "status": "Completed",
+                "result": "No acute intracranial pathology.",
+            },
+        ],
+    }
+
+    put_res = client.put(f"/api/consultations/{c_id}", headers=auth_headers, json=updated_payload)
+    assert put_res.status_code == 200
+    updated = put_res.json()
+
+    assert updated["patient_state_name"] == "Improving"
+    assert "Significant improvement" in updated["clinical_description"]
+    assert updated["additional_examination"] == "Neck supple, Kernig sign negative."
+    assert len(updated["diagnostic_tests"]) == 2
+
+    eeg_test = next(t for t in updated["diagnostic_tests"] if t["test_name"] == "EEG")
+    assert eeg_test["status"] == "Reviewed"
+    assert "Normal background" in eeg_test["result"]
+
+
+def test_phase5_diagnostic_test_status_validation(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    invalid_payload = {
+        "patient_id": patient_id,
+        "diagnostic_tests": [
+            {
+                "test_name": "MRI Brain",
+                "status": "InvalidStatusNotAllowed",
+            }
+        ],
+    }
+    res = client.post("/api/consultations", headers=auth_headers, json=invalid_payload)
+    assert res.status_code == 422
+

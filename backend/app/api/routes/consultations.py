@@ -8,6 +8,7 @@ from app.api.deps import get_db, get_current_user, require_roles
 from app.models.user import User, UserRole
 from app.schemas.consultation import (
     ConsultationCreate,
+    ConsultationUpdate,
     ConsultationResponse,
     ConsultationListResponse,
     ConsultationSummaryResponse,
@@ -15,6 +16,7 @@ from app.schemas.consultation import (
 )
 from app.services.consultation_service import (
     create_consultation,
+    update_consultation,
     get_consultation_by_id,
     list_all_consultations,
     build_consultation_summary,
@@ -50,10 +52,30 @@ def record_consultation(
 ):
     """
     Create and record a new clinical consultation workspace entry.
-    All data (vitals, symptoms, neurological exams, scores, notes) are committed atomically.
+    All data (vitals, symptoms, neurological exams, diagnostic tests, scores, notes, assessment) are committed atomically.
     """
     consultation = create_consultation(
         db,
+        consultation_in=consultation_in,
+        doctor_id=current_user.id,
+    )
+    return ConsultationResponse.model_validate(consultation)
+
+
+@router.put("/{consultation_id}", response_model=ConsultationResponse)
+def modify_consultation(
+    consultation_id: str,
+    consultation_in: ConsultationUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_clinical_creation),
+):
+    """
+    Update an existing clinical consultation workspace entry.
+    All clinical data and related records are updated atomically.
+    """
+    consultation = update_consultation(
+        db,
+        consultation_identifier=consultation_id,
         consultation_in=consultation_in,
         doctor_id=current_user.id,
     )
@@ -94,7 +116,8 @@ def get_consultation_detail(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Retrieve full consultation workspace record including vitals, symptoms, and neurological examination.
+    Retrieve full consultation workspace record including vitals, symptoms, neurological examination,
+    diagnostic tests, and clinical assessment.
     """
     consultation = get_consultation_by_id(db, consultation_id)
     if not consultation:

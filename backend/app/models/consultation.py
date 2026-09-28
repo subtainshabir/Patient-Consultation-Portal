@@ -49,6 +49,11 @@ class Consultation(Base):
     # Additional observations (Section 46)
     additional_observations = Column(Text, nullable=True)
 
+    # Phase 5 Clinical Assessment & Plan fields
+    clinical_description = Column(Text, nullable=True)  # Overall Clinical Assessment
+    additional_examination = Column(Text, nullable=True)  # Non-neurological / extra exam findings
+    treatment_plan = Column(Text, nullable=True)  # Treatment plan documentation (no medicine rows)
+
     # Standard audit timestamps
     created_at = Column(
         DateTime(timezone=True),
@@ -83,6 +88,12 @@ class Consultation(Base):
         "ConsultationExamination",
         back_populates="consultation",
         cascade="all, delete-orphan",
+    )
+    diagnostic_tests = relationship(
+        "ConsultationDiagnosticTest",
+        back_populates="consultation",
+        cascade="all, delete-orphan",
+        order_by="ConsultationDiagnosticTest.id",
     )
 
     def __repr__(self) -> str:
@@ -210,3 +221,51 @@ class ConsultationExamination(Base):
 
     def __repr__(self) -> str:
         return f"<ConsultationExamination id={self.id} category='{self.category}' item='{self.item_name}' finding='{self.finding}'>"
+
+
+class ConsultationDiagnosticTest(Base):
+    __tablename__ = "consultation_diagnostic_tests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    consultation_id = Column(
+        Integer,
+        ForeignKey("consultations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    diagnostic_test_id = Column(
+        Integer,
+        ForeignKey("diagnostic_tests.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    test_name = Column(String(255), nullable=False)
+    category = Column(String(100), nullable=True)
+
+    # Status: "Ordered" | "Pending" | "Completed" | "Reviewed"
+    status = Column(String(50), default="Ordered", nullable=False)
+
+    clinical_indication = Column(String(500), nullable=True)
+    result = Column(Text, nullable=True)
+    result_date = Column(DateTime(timezone=True), nullable=True)
+    doctor_notes = Column(Text, nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    consultation = relationship("Consultation", back_populates="diagnostic_tests")
+    diagnostic_test = relationship("DiagnosticTest", foreign_keys=[diagnostic_test_id])
+
+    def __repr__(self) -> str:
+        return f"<ConsultationDiagnosticTest id={self.id} consultation_id={self.consultation_id} test='{self.test_name}' status='{self.status}'>"
+

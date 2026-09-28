@@ -18,6 +18,7 @@ import {
   ChevronDown,
   Activity,
   Eye,
+  FlaskConical,
 } from 'lucide-react';
 
 
@@ -482,6 +483,13 @@ export const PatientProfilePage: React.FC = () => {
                                   {item.symptom_count === 1 ? 'symptom' : 'symptoms'}
                                 </span>
                               )}
+                              {item.diagnostic_test_count !== undefined && item.diagnostic_test_count > 0 && (
+                                <span className="inline-flex items-center gap-1 font-medium text-navy-700">
+                                  <FlaskConical className="w-3 h-3 text-medical-600" />
+                                  {item.diagnostic_test_count}{' '}
+                                  {item.diagnostic_test_count === 1 ? 'test' : 'tests'}
+                                </span>
+                              )}
                               {item.mmse_score !== null && item.mmse_score !== undefined && (
                                 <span className="font-semibold text-navy-700">
                                   MMSE: {item.mmse_score}/30
@@ -495,15 +503,30 @@ export const PatientProfilePage: React.FC = () => {
                             </div>
                           </div>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedConsultationId(item.consultation_id)}
-                            leftIcon={<Eye className="w-3.5 h-3.5" />}
-                            className="shrink-0 text-xs self-start sm:self-auto"
-                          >
-                            View Record
-                          </Button>
+                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedConsultationId(item.consultation_id)}
+                              leftIcon={<Eye className="w-3.5 h-3.5" />}
+                              className="text-xs"
+                            >
+                              View Record
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                navigate(
+                                  `/patients/${patient.patient_id}/consultation/${item.consultation_id}/edit`
+                                )
+                              }
+                              leftIcon={<Edit3 className="w-3.5 h-3.5 text-navy-500" />}
+                              className="text-xs text-navy-600 hover:text-navy-950"
+                            >
+                              Edit
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}

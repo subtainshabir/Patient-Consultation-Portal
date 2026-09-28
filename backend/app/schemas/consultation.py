@@ -96,6 +96,43 @@ class ConsultationExaminationResponse(ConsultationExaminationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ConsultationDiagnosticTestBase(BaseModel):
+    diagnostic_test_id: Optional[int] = None
+    test_name: str = Field(..., min_length=1, max_length=255)
+    category: Optional[str] = Field(None, max_length=100)
+    status: str = Field("Ordered", max_length=50, description="Ordered | Pending | Completed | Reviewed")
+    clinical_indication: Optional[str] = Field(None, max_length=500)
+    result: Optional[str] = None
+    result_date: Optional[datetime] = None
+    doctor_notes: Optional[str] = None
+
+    @field_validator("status")
+    @classmethod
+    def validate_test_status(cls, v: Optional[str]) -> str:
+        valid_statuses = ["Ordered", "Pending", "Completed", "Reviewed"]
+        if v and v.strip():
+            cleaned = v.strip().capitalize()
+            # Match case-insensitively
+            for s in valid_statuses:
+                if s.lower() == v.strip().lower():
+                    return s
+            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return "Ordered"
+
+
+class ConsultationDiagnosticTestCreate(ConsultationDiagnosticTestBase):
+    pass
+
+
+class ConsultationDiagnosticTestResponse(ConsultationDiagnosticTestBase):
+    id: int
+    consultation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConsultationCreate(BaseModel):
     patient_id: str = Field(..., description="Patient ID (DRN-XXXXXX or integer ID)")
     patient_state_id: Optional[int] = None
@@ -106,9 +143,19 @@ class ConsultationCreate(BaseModel):
     gcs_score: Optional[int] = Field(None, ge=3, le=15, description="Glasgow Coma Scale score (3-15)")
     additional_observations: Optional[str] = Field(None, description="General examination observations")
 
+    # Phase 5 Clinical Assessment, Additional Examination & Treatment Plan
+    clinical_description: Optional[str] = Field(None, description="Overall clinical assessment and impression")
+    additional_examination: Optional[str] = Field(None, description="Findings outside structured neuro examination")
+    treatment_plan: Optional[str] = Field(None, description="Non-pharmacological and clinical treatment plan")
+
     vitals: Optional[ConsultationVitalsCreate] = None
     symptoms: Optional[List[ConsultationSymptomCreate]] = Field(default_factory=list)
     examinations: Optional[List[ConsultationExaminationCreate]] = Field(default_factory=list)
+    diagnostic_tests: Optional[List[ConsultationDiagnosticTestCreate]] = Field(default_factory=list)
+
+
+class ConsultationUpdate(ConsultationCreate):
+    pass
 
 
 class ConsultationResponse(BaseModel):
@@ -124,6 +171,12 @@ class ConsultationResponse(BaseModel):
     mmse_score: Optional[int]
     gcs_score: Optional[int]
     additional_observations: Optional[str]
+
+    # Phase 5 fields
+    clinical_description: Optional[str] = None
+    additional_examination: Optional[str] = None
+    treatment_plan: Optional[str] = None
+
     created_at: datetime
     updated_at: datetime
 
@@ -131,6 +184,7 @@ class ConsultationResponse(BaseModel):
     vitals: Optional[ConsultationVitalsResponse] = None
     symptoms: List[ConsultationSymptomResponse] = []
     examinations: List[ConsultationExaminationResponse] = []
+    diagnostic_tests: List[ConsultationDiagnosticTestResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -144,6 +198,7 @@ class ConsultationSummaryResponse(BaseModel):
     consultation_date: datetime
     patient_state_name: Optional[str] = None
     symptom_count: int = 0
+    diagnostic_test_count: int = 0
     mmse_score: Optional[int] = None
     gcs_score: Optional[int] = None
     has_vitals: bool = False

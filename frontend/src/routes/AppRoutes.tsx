@@ -62,6 +62,10 @@ export const AppRoutes: React.FC = () => {
           path="/patients/:patientId/consultation/new"
           element={<NewConsultationPage />}
         />
+        <Route
+          path="/patients/:patientId/consultation/:consultationId/edit"
+          element={<NewConsultationPage />}
+        />
 
 
         {/* Consultations Module (Future Phase 3) */}

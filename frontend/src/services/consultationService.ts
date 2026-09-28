@@ -15,6 +15,10 @@ export const consultationService = {
     return api.post<Consultation>('/consultations', payload);
   },
 
+  async updateConsultation(consultationId: string, payload: ConsultationCreatePayload): Promise<Consultation> {
+    return api.put<Consultation>(`/consultations/${consultationId}`, payload);
+  },
+
   async getConsultation(consultationId: string): Promise<Consultation> {
     return api.get<Consultation>(`/consultations/${consultationId}`);
   },
