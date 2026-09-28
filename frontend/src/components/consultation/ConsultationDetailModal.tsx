@@ -14,6 +14,7 @@ import {
   HeartHandshake,
   Edit3,
   Calendar,
+  Pill,
 } from 'lucide-react';
 
 import { Dialog, DialogHeader, DialogContent, DialogFooter } from '../ui/Dialog';
@@ -404,6 +405,61 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
                 <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed bg-navy-50/50 p-3 rounded-lg border border-navy-100">
                   {consultation.treatment_plan}
                 </p>
+              </div>
+            )}
+
+            {/* ─── Phase 6: Prescription ─── */}
+            {consultation.prescriptions && consultation.prescriptions.length > 0 && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                    <Pill className="w-3.5 h-3.5 text-medical-600" />
+                    <span>Prescription ({consultation.prescriptions.length} {consultation.prescriptions.length === 1 ? 'Medicine' : 'Medicines'})</span>
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {consultation.prescriptions.map((med, idx) => (
+                    <div
+                      key={med.id || idx}
+                      className="p-3 rounded-lg bg-navy-50/60 border border-navy-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-navy-950 font-mono">
+                            {idx + 1}. {med.medicine_name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-white border border-navy-200 text-navy-700 text-[11px] font-medium">
+                            {med.dosage}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-navy-600">
+                          <span className="font-semibold text-medical-800" dir="rtl">
+                            {med.frequency_name}
+                          </span>
+                          <span className="text-navy-300">•</span>
+                          <span>
+                            Duration: <strong className="text-navy-900">{med.duration_days} days</strong>
+                          </span>
+                          {med.instruction_name && (
+                            <>
+                              <span className="text-navy-300">•</span>
+                              <span className="text-navy-700" dir="rtl">
+                                {med.instruction_name}
+                              </span>
+                            </>
+                          )}
+                          {med.custom_instruction && (
+                            <>
+                              <span className="text-navy-300">•</span>
+                              <span className="italic text-navy-600">"{med.custom_instruction}"</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

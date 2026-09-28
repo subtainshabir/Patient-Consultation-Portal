@@ -6,13 +6,14 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc, asc, func
 
 from app.models.patient import Patient
-from app.models.master_data import PatientState, Symptom, NeurologicalExamOption, DiagnosticTest
+from app.models.master_data import PatientState, Symptom, NeurologicalExamOption, DiagnosticTest, Medicine
 from app.models.consultation import (
     Consultation,
     ConsultationVitals,
     ConsultationSymptom,
     ConsultationExamination,
     ConsultationDiagnosticTest,
+    PrescriptionItem,
 )
 from app.schemas.consultation import ConsultationCreate, ConsultationUpdate, ConsultationSummaryResponse
 
@@ -251,6 +252,47 @@ def create_consultation(
                 )
                 db.add(db_test)
 
+        # 6. Prescription Items (Phase 6)
+        if consultation_in.prescriptions:
+            for idx, p_item in enumerate(consultation_in.prescriptions):
+                m_name = p_item.medicine_name.strip()
+                m_id = p_item.medicine_id
+
+                if not m_id:
+                    existing_med = db.query(Medicine).filter(Medicine.name.ilike(m_name)).first()
+                    if existing_med:
+                        m_id = existing_med.id
+                    else:
+                        new_med = Medicine(
+                            name=m_name,
+                            form="Tablet",
+                            is_active=True,
+                            sort_order=999,
+                            created_by_id=doctor_id,
+                            created_at=now,
+                            updated_at=now,
+                        )
+                        db.add(new_med)
+                        db.flush()
+                        m_id = new_med.id
+
+                db_prescription = PrescriptionItem(
+                    consultation_id=consultation.id,
+                    medicine_id=m_id,
+                    medicine_name=m_name,
+                    frequency_id=p_item.frequency_id,
+                    frequency_name=p_item.frequency_name.strip(),
+                    dosage=p_item.dosage.strip(),
+                    duration_days=p_item.duration_days,
+                    instruction_id=p_item.instruction_id,
+                    instruction_name=p_item.instruction_name.strip() if p_item.instruction_name else None,
+                    custom_instruction=p_item.custom_instruction.strip() if p_item.custom_instruction else None,
+                    sort_order=p_item.sort_order if p_item.sort_order else idx,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(db_prescription)
+
         db.commit()
         db.refresh(consultation)
         return consultation
@@ -440,6 +482,49 @@ def update_consultation(
                 )
                 db.add(db_test)
 
+        # 6. Replace Prescriptions (Phase 6)
+        consultation.prescriptions.clear()
+        db.flush()
+        if consultation_in.prescriptions:
+            for idx, p_item in enumerate(consultation_in.prescriptions):
+                m_name = p_item.medicine_name.strip()
+                m_id = p_item.medicine_id
+
+                if not m_id:
+                    existing_med = db.query(Medicine).filter(Medicine.name.ilike(m_name)).first()
+                    if existing_med:
+                        m_id = existing_med.id
+                    else:
+                        new_med = Medicine(
+                            name=m_name,
+                            form="Tablet",
+                            is_active=True,
+                            sort_order=999,
+                            created_by_id=doctor_id,
+                            created_at=now,
+                            updated_at=now,
+                        )
+                        db.add(new_med)
+                        db.flush()
+                        m_id = new_med.id
+
+                db_prescription = PrescriptionItem(
+                    consultation_id=consultation.id,
+                    medicine_id=m_id,
+                    medicine_name=m_name,
+                    frequency_id=p_item.frequency_id,
+                    frequency_name=p_item.frequency_name.strip(),
+                    dosage=p_item.dosage.strip(),
+                    duration_days=p_item.duration_days,
+                    instruction_id=p_item.instruction_id,
+                    instruction_name=p_item.instruction_name.strip() if p_item.instruction_name else None,
+                    custom_instruction=p_item.custom_instruction.strip() if p_item.custom_instruction else None,
+                    sort_order=p_item.sort_order if p_item.sort_order else idx,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(db_prescription)
+
         db.commit()
         db.refresh(consultation)
         return consultation
@@ -463,6 +548,7 @@ def get_consultation_by_id(db: Session, consultation_identifier: str) -> Optiona
             joinedload(Consultation.symptoms),
             joinedload(Consultation.examinations),
             joinedload(Consultation.diagnostic_tests),
+            joinedload(Consultation.prescriptions),
         )
     )
 
@@ -488,6 +574,7 @@ def list_patient_consultations(
             joinedload(Consultation.vitals),
             joinedload(Consultation.symptoms),
             joinedload(Consultation.diagnostic_tests),
+            joinedload(Consultation.prescriptions),
         )
         .filter(Consultation.patient_id == patient.id)
         .order_by(desc(Consultation.consultation_date), desc(Consultation.id))
@@ -512,6 +599,7 @@ def list_all_consultations(
             joinedload(Consultation.vitals),
             joinedload(Consultation.symptoms),
             joinedload(Consultation.diagnostic_tests),
+            joinedload(Consultation.prescriptions),
         )
     )
 
@@ -558,6 +646,7 @@ def build_consultation_summary(consultation: Consultation) -> ConsultationSummar
         patient_state_name=consultation.patient_state_name,
         symptom_count=len(consultation.symptoms) if consultation.symptoms else 0,
         diagnostic_test_count=len(consultation.diagnostic_tests) if consultation.diagnostic_tests else 0,
+        prescription_count=len(consultation.prescriptions) if consultation.prescriptions else 0,
         mmse_score=consultation.mmse_score,
         gcs_score=consultation.gcs_score,
         has_vitals=has_vitals,

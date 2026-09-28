@@ -360,3 +360,177 @@ def test_phase5_diagnostic_test_status_validation(auth_headers, sample_patient):
     res = client.post("/api/consultations", headers=auth_headers, json=invalid_payload)
     assert res.status_code == 422
 
+
+# =========================================================================
+# Phase 6: Prescription Management Tests
+# =========================================================================
+
+def test_phase6_prescription_creation_and_retrieval(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    payload = {
+        "patient_id": patient_id,
+        "patient_state_name": "Stable",
+        "clinical_description": "Essential tremor with mild sensory neuropathy.",
+        "treatment_plan": "Start pharmacological therapy and schedule review in 4 weeks.",
+        "prescriptions": [
+            {
+                "medicine_name": "Gabapentin",
+                "frequency_name": "صبح و شام",
+                "dosage": "1 capsule",
+                "duration_days": 30,
+                "instruction_name": "کھانے کے بعد",
+                "custom_instruction": "Take with full glass of water",
+                "sort_order": 0,
+            },
+            {
+                "medicine_name": "Propranolol",
+                "frequency_name": "صبح، دوپہر، شام",
+                "dosage": "1 tablet",
+                "duration_days": 14,
+                "instruction_name": "کھانے سے پہلے",
+                "sort_order": 1,
+            },
+        ],
+    }
+
+    create_res = client.post("/api/consultations", headers=auth_headers, json=payload)
+    assert create_res.status_code == 201
+    created = create_res.json()
+    c_id = created["consultation_id"]
+
+    assert len(created["prescriptions"]) == 2
+    med1 = created["prescriptions"][0]
+    assert med1["medicine_name"] == "Gabapentin"
+    assert med1["dosage"] == "1 capsule"
+    assert med1["duration_days"] == 30
+    assert med1["frequency_name"] == "صبح و شام"
+    assert med1["instruction_name"] == "کھانے کے بعد"
+    assert med1["custom_instruction"] == "Take with full glass of water"
+
+    med2 = created["prescriptions"][1]
+    assert med2["medicine_name"] == "Propranolol"
+    assert med2["dosage"] == "1 tablet"
+    assert med2["duration_days"] == 14
+
+    # Fetch individual consultation detail
+    get_res = client.get(f"/api/consultations/{c_id}", headers=auth_headers)
+    assert get_res.status_code == 200
+    detail = get_res.json()
+    assert len(detail["prescriptions"]) == 2
+
+    # Check consultation history summary endpoint
+    summary_res = client.get(f"/api/patients/{patient_id}/consultations", headers=auth_headers)
+    assert summary_res.status_code == 200
+    summaries = summary_res.json()
+    matching_summary = next(s for s in summaries if s["consultation_id"] == c_id)
+    assert matching_summary["prescription_count"] == 2
+
+
+def test_phase6_prescription_update_and_atomic_replace(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    # Initial consultation with 1 medicine
+    initial_payload = {
+        "patient_id": patient_id,
+        "treatment_plan": "Initial trial of medication.",
+        "prescriptions": [
+            {
+                "medicine_name": "Gabapentin",
+                "frequency_name": "صبح و شام",
+                "dosage": "1 capsule",
+                "duration_days": 14,
+                "instruction_name": "کھانے کے بعد",
+                "sort_order": 0,
+            }
+        ],
+    }
+    create_res = client.post("/api/consultations", headers=auth_headers, json=initial_payload)
+    assert create_res.status_code == 201
+    c_id = create_res.json()["consultation_id"]
+
+    # Update via PUT: Replace with 2 different medicines
+    updated_payload = {
+        "patient_id": patient_id,
+        "treatment_plan": "Adjusted prescription based on follow-up.",
+        "prescriptions": [
+            {
+                "medicine_name": "Pregabalin",
+                "frequency_name": "رات",
+                "dosage": "75 mg",
+                "duration_days": 30,
+                "instruction_name": "سونے سے پہلے",
+                "sort_order": 0,
+            },
+            {
+                "medicine_name": "Mecobalamin",
+                "frequency_name": "روزانہ ایک بار",
+                "dosage": "500 mcg",
+                "duration_days": 60,
+                "instruction_name": "صبح ناشتے کے بعد",
+                "sort_order": 1,
+            },
+        ],
+    }
+    put_res = client.put(f"/api/consultations/{c_id}", headers=auth_headers, json=updated_payload)
+    assert put_res.status_code == 200
+    updated = put_res.json()
+
+    assert len(updated["prescriptions"]) == 2
+    pregabalin = next(m for m in updated["prescriptions"] if m["medicine_name"] == "Pregabalin")
+    assert pregabalin["dosage"] == "75 mg"
+    assert pregabalin["duration_days"] == 30
+    assert pregabalin["frequency_name"] == "رات"
+
+    # Confirm previous Gabapentin was replaced
+    assert not any(m["medicine_name"] == "Gabapentin" for m in updated["prescriptions"])
+
+
+def test_phase6_prescription_auto_register_custom_medicine(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+    custom_med_name = f"Custom Neuro Tonic {random.randint(1000, 9999)}"
+
+    payload = {
+        "patient_id": patient_id,
+        "prescriptions": [
+            {
+                "medicine_name": custom_med_name,
+                "frequency_name": "صبح و شام",
+                "dosage": "10 ml",
+                "duration_days": 10,
+                "instruction_name": "کھانے کے بعد",
+            }
+        ],
+    }
+    create_res = client.post("/api/consultations", headers=auth_headers, json=payload)
+    assert create_res.status_code == 201
+    created = create_res.json()
+    assert len(created["prescriptions"]) == 1
+    assert created["prescriptions"][0]["medicine_name"] == custom_med_name
+    assert created["prescriptions"][0]["medicine_id"] is not None
+
+    # Verify that the new medicine is now available in master data
+    med_list_res = client.get(f"/api/master-data/medicines?search={custom_med_name}", headers=auth_headers)
+    assert med_list_res.status_code == 200
+    items = med_list_res.json()["items"]
+    assert any(m["name"] == custom_med_name for m in items)
+
+
+def test_phase6_prescription_duration_validation(auth_headers, sample_patient):
+    patient_id = sample_patient["patient_id"]
+
+    invalid_payload = {
+        "patient_id": patient_id,
+        "prescriptions": [
+            {
+                "medicine_name": "Gabapentin",
+                "frequency_name": "صبح و شام",
+                "dosage": "1 capsule",
+                "duration_days": 0,  # Invalid: must be >= 1
+            }
+        ],
+    }
+    res = client.post("/api/consultations", headers=auth_headers, json=invalid_payload)
+    assert res.status_code == 422
+
+

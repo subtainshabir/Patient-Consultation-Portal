@@ -20,6 +20,7 @@ import { DiagnosticTestsSection } from '../../components/consultation/Diagnostic
 import { ClinicalAssessmentSection } from '../../components/consultation/ClinicalAssessmentSection';
 import { AdditionalExaminationSection } from '../../components/consultation/AdditionalExaminationSection';
 import { TreatmentPlanSection } from '../../components/consultation/TreatmentPlanSection';
+import { PrescriptionSection } from '../../components/consultation/PrescriptionSection';
 import { SaveConsultationBar } from '../../components/consultation/SaveConsultationBar';
 import { ConsultationSuccessModal } from '../../components/consultation/ConsultationSuccessModal';
 import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
@@ -34,6 +35,7 @@ import type {
   ConsultationSymptom,
   ConsultationExamination,
   ConsultationDiagnosticTest,
+  PrescriptionItem,
   ConsultationCreatePayload,
 } from '../../types/consultation';
 
@@ -130,6 +132,9 @@ export const NewConsultationPage: React.FC = () => {
   const [additionalExamination, setAdditionalExamination] = useState<string>('');
   const [treatmentPlan, setTreatmentPlan] = useState<string>('');
 
+  // Phase 6 Field
+  const [prescriptions, setPrescriptions] = useState<PrescriptionItem[]>([]);
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState<boolean>(false);
 
@@ -177,6 +182,9 @@ export const NewConsultationPage: React.FC = () => {
       }
       if (existingConsultation.treatment_plan) {
         setTreatmentPlan(existingConsultation.treatment_plan);
+      }
+      if (existingConsultation.prescriptions) {
+        setPrescriptions(existingConsultation.prescriptions);
       }
       setIsDirty(false);
     }
@@ -276,6 +284,22 @@ export const NewConsultationPage: React.FC = () => {
       }
     }
 
+    // Phase 6: Validate Prescriptions
+    prescriptions.forEach((item, index) => {
+      if (!item.medicine_name || !item.medicine_name.trim()) {
+        errs[`prescriptions.${index}.medicine_name`] = 'Medicine name is required';
+      }
+      if (!item.frequency_name || !item.frequency_name.trim()) {
+        errs[`prescriptions.${index}.frequency_name`] = 'Frequency is required';
+      }
+      if (!item.dosage || !item.dosage.trim()) {
+        errs[`prescriptions.${index}.dosage`] = 'Dosage is required';
+      }
+      if (item.duration_days === undefined || item.duration_days === null || item.duration_days <= 0) {
+        errs[`prescriptions.${index}.duration_days`] = 'Duration must be greater than 0';
+      }
+    });
+
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -312,6 +336,7 @@ export const NewConsultationPage: React.FC = () => {
       symptoms: symptoms,
       examinations: validExams,
       diagnostic_tests: diagnosticTests,
+      prescriptions: prescriptions,
     };
 
     saveMutation.mutate(payload);
@@ -505,7 +530,17 @@ export const NewConsultationPage: React.FC = () => {
         }}
       />
 
-      {/* ─── 13. Sticky Save Action Bar ─── */}
+      {/* ─── 13. Prescription (Phase 6) ─── */}
+      <PrescriptionSection
+        prescriptions={prescriptions}
+        onChange={(newPrescriptions) => {
+          setPrescriptions(newPrescriptions);
+          markDirty();
+        }}
+        errors={formErrors}
+      />
+
+      {/* ─── 14. Sticky Save Action Bar ─── */}
       <SaveConsultationBar
         onSave={handleSave}
         isSaving={saveMutation.isPending}
@@ -514,6 +549,7 @@ export const NewConsultationPage: React.FC = () => {
         symptomCount={symptoms.length}
         examinationsCount={examinations.length}
         diagnosticTestCount={diagnosticTests.length}
+        prescriptionCount={prescriptions.length}
         isEditMode={isEditMode}
         onCancel={handleBack}
       />

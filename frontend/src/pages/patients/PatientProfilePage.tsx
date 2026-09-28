@@ -19,6 +19,7 @@ import {
   Activity,
   Eye,
   FlaskConical,
+  Pill,
 } from 'lucide-react';
 
 
@@ -488,6 +489,13 @@ export const PatientProfilePage: React.FC = () => {
                                   <FlaskConical className="w-3 h-3 text-medical-600" />
                                   {item.diagnostic_test_count}{' '}
                                   {item.diagnostic_test_count === 1 ? 'test' : 'tests'}
+                                </span>
+                              )}
+                              {item.prescription_count !== undefined && item.prescription_count > 0 && (
+                                <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                  <Pill className="w-3 h-3 text-emerald-600" />
+                                  {item.prescription_count}{' '}
+                                  {item.prescription_count === 1 ? 'medicine' : 'medicines'}
                                 </span>
                               )}
                               {item.mmse_score !== null && item.mmse_score !== undefined && (

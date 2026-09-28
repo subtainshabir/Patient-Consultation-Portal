@@ -133,6 +133,32 @@ class ConsultationDiagnosticTestResponse(ConsultationDiagnosticTestBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PrescriptionItemBase(BaseModel):
+    medicine_id: Optional[int] = None
+    medicine_name: str = Field(..., min_length=1, max_length=255)
+    frequency_id: Optional[int] = None
+    frequency_name: str = Field(..., min_length=1, max_length=255)
+    dosage: str = Field(..., min_length=1, max_length=100)
+    duration_days: int = Field(..., gt=0, le=365, description="Duration in days (must be positive)")
+    instruction_id: Optional[int] = None
+    instruction_name: Optional[str] = Field(None, max_length=255)
+    custom_instruction: Optional[str] = None
+    sort_order: int = 0
+
+
+class PrescriptionItemCreate(PrescriptionItemBase):
+    pass
+
+
+class PrescriptionItemResponse(PrescriptionItemBase):
+    id: int
+    consultation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConsultationCreate(BaseModel):
     patient_id: str = Field(..., description="Patient ID (DRN-XXXXXX or integer ID)")
     patient_state_id: Optional[int] = None
@@ -152,6 +178,7 @@ class ConsultationCreate(BaseModel):
     symptoms: Optional[List[ConsultationSymptomCreate]] = Field(default_factory=list)
     examinations: Optional[List[ConsultationExaminationCreate]] = Field(default_factory=list)
     diagnostic_tests: Optional[List[ConsultationDiagnosticTestCreate]] = Field(default_factory=list)
+    prescriptions: Optional[List[PrescriptionItemCreate]] = Field(default_factory=list)
 
 
 class ConsultationUpdate(ConsultationCreate):
@@ -185,6 +212,7 @@ class ConsultationResponse(BaseModel):
     symptoms: List[ConsultationSymptomResponse] = []
     examinations: List[ConsultationExaminationResponse] = []
     diagnostic_tests: List[ConsultationDiagnosticTestResponse] = []
+    prescriptions: List[PrescriptionItemResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -199,6 +227,7 @@ class ConsultationSummaryResponse(BaseModel):
     patient_state_name: Optional[str] = None
     symptom_count: int = 0
     diagnostic_test_count: int = 0
+    prescription_count: int = 0
     mmse_score: Optional[int] = None
     gcs_score: Optional[int] = None
     has_vitals: bool = False

@@ -56,6 +56,23 @@ export interface ConsultationDiagnosticTest {
   updated_at?: string;
 }
 
+export interface PrescriptionItem {
+  id?: number;
+  consultation_id?: number;
+  medicine_id?: number | null;
+  medicine_name: string;
+  frequency_id?: number | null;
+  frequency_name: string;
+  dosage: string;
+  duration_days: number;
+  instruction_id?: number | null;
+  instruction_name?: string | null;
+  custom_instruction?: string | null;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Consultation {
   id: number;
   consultation_id: string; // e.g. CNS-20260929-0001
@@ -79,6 +96,7 @@ export interface Consultation {
   symptoms: ConsultationSymptom[];
   examinations: ConsultationExamination[];
   diagnostic_tests: ConsultationDiagnosticTest[];
+  prescriptions?: PrescriptionItem[];
 }
 
 export interface ConsultationSummary {
@@ -91,6 +109,7 @@ export interface ConsultationSummary {
   patient_state_name?: string | null;
   symptom_count: number;
   diagnostic_test_count?: number;
+  prescription_count?: number;
   mmse_score?: number | null;
   gcs_score?: number | null;
   has_vitals: boolean;
@@ -116,6 +135,7 @@ export interface ConsultationCreatePayload {
   symptoms: ConsultationSymptom[];
   examinations: ConsultationExamination[];
   diagnostic_tests?: ConsultationDiagnosticTest[];
+  prescriptions?: PrescriptionItem[];
 }
 
 export interface ServerDateResponse {
@@ -123,3 +143,4 @@ export interface ServerDateResponse {
   formatted_date: string;
   iso_timestamp: string;
 }
+

@@ -10,6 +10,7 @@ export interface SaveConsultationBarProps {
   symptomCount?: number;
   examinationsCount?: number;
   diagnosticTestCount?: number;
+  prescriptionCount?: number;
   isEditMode?: boolean;
   onCancel?: () => void;
 }
@@ -22,6 +23,7 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
   symptomCount = 0,
   examinationsCount = 0,
   diagnosticTestCount = 0,
+  prescriptionCount = 0,
   isEditMode = false,
   onCancel,
 }) => {
@@ -52,7 +54,7 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
             <span className="text-navy-300 hidden sm:inline">•</span>
 
             <span className="hidden sm:inline text-navy-600">
-              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings, {diagnosticTestCount} tests
+              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings, {diagnosticTestCount} tests{prescriptionCount > 0 ? `, ${prescriptionCount} ${prescriptionCount === 1 ? 'medicine' : 'medicines'}` : ''}
             </span>
 
           </div>

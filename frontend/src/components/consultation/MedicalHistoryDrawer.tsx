@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Calendar, Clock, ChevronRight, Activity } from 'lucide-react';
+import { History, Calendar, Clock, ChevronRight, Activity, Pill } from 'lucide-react';
 
 import { Dialog, DialogHeader, DialogContent } from '../ui/Dialog';
 import { Button } from '../ui/Button';
@@ -100,6 +100,17 @@ export const MedicalHistoryDrawer: React.FC<MedicalHistoryDrawerProps> = ({
                         {item.symptom_count > 0 && (
                           <span>
                             {item.symptom_count} {item.symptom_count === 1 ? 'symptom' : 'symptoms'}
+                          </span>
+                        )}
+                        {item.diagnostic_test_count !== undefined && item.diagnostic_test_count > 0 && (
+                          <span>
+                            {item.diagnostic_test_count} {item.diagnostic_test_count === 1 ? 'test' : 'tests'}
+                          </span>
+                        )}
+                        {item.prescription_count !== undefined && item.prescription_count > 0 && (
+                          <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">
+                            <Pill className="w-3 h-3 text-emerald-600" />
+                            {item.prescription_count} {item.prescription_count === 1 ? 'med' : 'meds'}
                           </span>
                         )}
                         {item.mmse_score !== null && item.mmse_score !== undefined && (

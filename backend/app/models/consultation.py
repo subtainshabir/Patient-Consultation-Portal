@@ -95,6 +95,12 @@ class Consultation(Base):
         cascade="all, delete-orphan",
         order_by="ConsultationDiagnosticTest.id",
     )
+    prescriptions = relationship(
+        "PrescriptionItem",
+        back_populates="consultation",
+        cascade="all, delete-orphan",
+        order_by="PrescriptionItem.sort_order",
+    )
 
     def __repr__(self) -> str:
         return f"<Consultation id={self.id} consultation_id='{self.consultation_id}' patient_id={self.patient_id}>"
@@ -268,4 +274,64 @@ class ConsultationDiagnosticTest(Base):
 
     def __repr__(self) -> str:
         return f"<ConsultationDiagnosticTest id={self.id} consultation_id={self.consultation_id} test='{self.test_name}' status='{self.status}'>"
+
+
+class PrescriptionItem(Base):
+    __tablename__ = "prescription_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    consultation_id = Column(
+        Integer,
+        ForeignKey("consultations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    medicine_id = Column(
+        Integer,
+        ForeignKey("medicines.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    medicine_name = Column(String(255), nullable=False)
+
+    frequency_id = Column(
+        Integer,
+        ForeignKey("medicine_frequencies.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    frequency_name = Column(String(255), nullable=False)  # Urdu / English frequency wording
+
+    dosage = Column(String(100), nullable=False)  # e.g., "1 tablet", "½ tablet", "1 capsule"
+    duration_days = Column(Integer, nullable=False)  # Duration in days, e.g. 7, 30
+
+    instruction_id = Column(
+        Integer,
+        ForeignKey("medicine_instructions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    instruction_name = Column(String(255), nullable=True)  # Urdu / English instruction wording
+    custom_instruction = Column(Text, nullable=True)  # Additional specific instructions
+
+    sort_order = Column(Integer, default=0, nullable=False)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    consultation = relationship("Consultation", back_populates="prescriptions")
+    medicine = relationship("Medicine", foreign_keys=[medicine_id])
+    frequency = relationship("MedicineFrequency", foreign_keys=[frequency_id])
+    instruction = relationship("MedicineInstruction", foreign_keys=[instruction_id])
+
+    def __repr__(self) -> str:
+        return f"<PrescriptionItem id={self.id} consultation_id={self.consultation_id} medicine='{self.medicine_name}' dosage='{self.dosage}' duration={self.duration_days}>"
+
 
