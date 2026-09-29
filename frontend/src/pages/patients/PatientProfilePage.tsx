@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -20,8 +20,14 @@ import {
   Eye,
   FlaskConical,
   Pill,
+  CalendarClock,
+  Search,
+  SlidersHorizontal,
+  List,
+  GitCommit,
+  ArrowUpDown,
+  X,
 } from 'lucide-react';
-
 
 import { patientService } from '../../services/patientService';
 import { consultationService } from '../../services/consultationService';
@@ -32,8 +38,8 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { SkeletonCard } from '../../components/ui/LoadingSkeleton';
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog';
 import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
+import { PatientTimeline } from '../../components/consultation/PatientTimeline';
 import { cn } from '../../utils/cn';
-
 
 export const PatientProfilePage: React.FC = () => {
   const { patientId } = useParams<{ patientId: string }>();
@@ -45,6 +51,14 @@ export const PatientProfilePage: React.FC = () => {
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
   const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(null);
+
+  // Phase 7: History Filters & View Mode
+  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [showFilterBar, setShowFilterBar] = useState(false);
 
   // Fetch patient profile
   const {
@@ -67,6 +81,53 @@ export const PatientProfilePage: React.FC = () => {
     enabled: !!patientId,
   });
 
+  // Derived: Upcoming Follow-up (Section 13)
+  const upcomingFollowUp = useMemo(() => {
+    // Look for active follow-up: Scheduled or Overdue or As Needed from the newest relevant consultation
+    return consultationHistory.find(
+      (c) =>
+        (c.follow_up_date || c.follow_up_period) &&
+        c.follow_up_status !== 'Completed'
+    );
+  }, [consultationHistory]);
+
+  // Derived: Filtered and Sorted Consultations (Section 18)
+  const filteredConsultations = useMemo(() => {
+    let result = [...consultationHistory];
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      result = result.filter(
+        (c) =>
+          c.consultation_id.toLowerCase().includes(term) ||
+          (c.patient_state_name && c.patient_state_name.toLowerCase().includes(term)) ||
+          (c.symptoms_summary && c.symptoms_summary.some((s) => s.toLowerCase().includes(term))) ||
+          (c.follow_up_period && c.follow_up_period.toLowerCase().includes(term))
+      );
+    }
+
+    if (fromDate) {
+      result = result.filter((c) => {
+        const cDate = c.consultation_date.split('T')[0];
+        return cDate >= fromDate;
+      });
+    }
+
+    if (toDate) {
+      result = result.filter((c) => {
+        const cDate = c.consultation_date.split('T')[0];
+        return cDate <= toDate;
+      });
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.consultation_date).getTime();
+      const dateB = new Date(b.consultation_date).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [consultationHistory, searchTerm, fromDate, toDate, sortOrder]);
 
   // Mutation to toggle active status
   const statusMutation = useMutation({
@@ -96,6 +157,15 @@ export const PatientProfilePage: React.FC = () => {
     setCopiedMobile(true);
     setTimeout(() => setCopiedMobile(false), 2000);
   };
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setFromDate('');
+    setToDate('');
+    setSortOrder('desc');
+  };
+
+  const hasActiveFilters = Boolean(searchTerm || fromDate || toDate || sortOrder !== 'desc');
 
   if (isLoading) {
     return (
@@ -134,11 +204,9 @@ export const PatientProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-200">
-      {/* ─── BREADCRUMBS & CONTEXT (Section 30) ─── */}
+      {/* ─── BREADCRUMBS & STATUS ─── */}
       <div className="flex items-center justify-between">
-        {/* Desktop Breadcrumbs vs Mobile Back Button */}
         <div className="flex items-center gap-2">
-          {/* Mobile Back Button */}
           <Link
             to="/patients"
             className="md:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-navy-600 hover:text-medical-700 transition-colors"
@@ -147,7 +215,6 @@ export const PatientProfilePage: React.FC = () => {
             <span>Patients</span>
           </Link>
 
-          {/* Desktop Breadcrumbs */}
           <nav className="hidden md:flex items-center gap-1.5 text-xs font-semibold text-navy-500">
             <Link to="/patients" className="hover:text-medical-700 transition-colors">
               Patients
@@ -157,7 +224,6 @@ export const PatientProfilePage: React.FC = () => {
           </nav>
         </div>
 
-        {/* Status Badge with Dot (Section 25) */}
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -178,11 +244,10 @@ export const PatientProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── PATIENT HEADER BANNER (Section 16 & 29) ─── */}
+      {/* ─── PATIENT HEADER BANNER ─── */}
       <Card className="border-navy-200 shadow-sm bg-gradient-to-r from-white via-white to-navy-50/50">
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            {/* Left: Patient Demographic summary */}
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-medical-600 to-medical-800 text-white flex items-center justify-center font-bold text-xl shadow-md shrink-0">
                 {patient.full_name.charAt(0)}
@@ -234,7 +299,7 @@ export const PatientProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Actions (Section 16, 23 & 50) */}
+            {/* Top Right Action Buttons (Section 6) */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Button
                 variant="outline"
@@ -257,7 +322,7 @@ export const PatientProfilePage: React.FC = () => {
                 + New Consultation
               </Button>
 
-              {/* More Actions Dropdown (Section 23 & 50) */}
+              {/* More Actions Dropdown */}
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -306,8 +371,9 @@ export const PatientProfilePage: React.FC = () => {
 
       {/* ─── MAIN PROFILE CONTENT: INFO & CONSULTATION HISTORY ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Dedicated Patient Information Card (Section 17) */}
+        {/* Left Column: Patient Information & Follow-Up Cards (Section 2 & 13) */}
         <div className="lg:col-span-1 space-y-6">
+          {/* Patient Details (Section 2) */}
           <Card className="border-navy-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-navy-100">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -318,7 +384,7 @@ export const PatientProfilePage: React.FC = () => {
             <CardContent className="p-5 space-y-4">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-navy-400">
-                  Patient ID (Permanent)
+                  Patient ID
                 </span>
                 <p className="font-mono text-sm font-bold text-navy-900 mt-0.5">
                   {patient.patient_id}
@@ -364,7 +430,7 @@ export const PatientProfilePage: React.FC = () => {
 
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-navy-400">
-                  CNIC Number
+                  CNIC
                 </span>
                 <p className="font-mono text-sm font-medium text-navy-900 mt-0.5">
                   {patient.cnic || 'Not provided'}
@@ -382,28 +448,211 @@ export const PatientProfilePage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Next Follow-Up Card (Section 13) */}
+          <Card className="border-navy-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-navy-100">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-medical-600" />
+                <span>Next Follow-Up</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              {upcomingFollowUp ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                        upcomingFollowUp.follow_up_status === 'Overdue'
+                          ? 'bg-rose-50 text-rose-800 border-rose-200'
+                          : upcomingFollowUp.follow_up_status === 'Scheduled'
+                          ? 'bg-sky-50 text-sky-800 border-sky-200'
+                          : 'bg-navy-50 text-navy-700 border-navy-200'
+                      }`}
+                    >
+                      {upcomingFollowUp.follow_up_status || 'Scheduled'}
+                    </span>
+                    {upcomingFollowUp.follow_up_date && (
+                      <span className="text-xs font-mono font-bold text-navy-900">
+                        {new Date(upcomingFollowUp.follow_up_date).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  {upcomingFollowUp.follow_up_period && (
+                    <p className="text-sm font-bold text-medical-900 font-mono" dir="rtl">
+                      {upcomingFollowUp.follow_up_period}
+                    </p>
+                  )}
+
+                  {upcomingFollowUp.follow_up_instructions && (
+                    <p className="text-xs text-navy-600 bg-navy-50/70 p-2.5 rounded-lg border border-navy-100 leading-relaxed">
+                      <strong>Instructions:</strong> {upcomingFollowUp.follow_up_instructions}
+                    </p>
+                  )}
+
+                  <div className="pt-2 border-t border-navy-100 flex items-center justify-between">
+                    <span className="text-[11px] text-navy-400 font-mono">
+                      {upcomingFollowUp.consultation_id}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedConsultationId(upcomingFollowUp.consultation_id)}
+                      className="text-xs font-semibold text-medical-700 hover:text-medical-900 hover:underline"
+                    >
+                      View Details →
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-navy-500 space-y-1">
+                  <CalendarClock className="w-6 h-6 text-navy-300 mx-auto" />
+                  <p className="text-xs font-medium">No follow-up scheduled</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Column: Consultation History (Section 19 & 20) */}
+        {/* Right Column: Consultation History (Section 2, 3, 6, 8, 18) */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-navy-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-navy-100">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-medical-600" />
-                <span>Consultation History</span>
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  navigate(`/patients/${patient.patient_id}/consultation/new`)
-                }
-                leftIcon={<Stethoscope className="w-3.5 h-3.5 text-medical-600" />}
-              >
-                + New Consultation
-              </Button>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-navy-100 gap-3">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-medical-600" />
+                  <span>Consultation History</span>
+                </CardTitle>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-navy-100 text-navy-700 font-semibold">
+                  {consultationHistory.length} {consultationHistory.length === 1 ? 'Record' : 'Records'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                {/* View Mode Toggle: Cards vs Timeline (Section 8) */}
+                <div className="flex items-center p-0.5 bg-navy-100 rounded-lg border border-navy-200">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('cards')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                      viewMode === 'cards'
+                        ? 'bg-white text-navy-950 shadow-2xs'
+                        : 'text-navy-600 hover:text-navy-950'
+                    }`}
+                    title="Cards view"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span>Cards</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('timeline')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                      viewMode === 'timeline'
+                        ? 'bg-white text-navy-950 shadow-2xs'
+                        : 'text-navy-600 hover:text-navy-950'
+                    }`}
+                    title="Timeline view"
+                  >
+                    <GitCommit className="w-3.5 h-3.5" />
+                    <span>Timeline</span>
+                  </button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilterBar((prev) => !prev)}
+                  leftIcon={<SlidersHorizontal className="w-3.5 h-3.5 text-navy-600" />}
+                  className={cn('text-xs', hasActiveFilters && 'border-medical-500 bg-medical-50/50')}
+                  title="Filter consultations"
+                >
+                  Filter
+                </Button>
+
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/patients/${patient.patient_id}/consultation/new`)
+                  }
+                  leftIcon={<Stethoscope className="w-3.5 h-3.5" />}
+                  className="text-xs font-semibold"
+                >
+                  + New Consultation
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6">
+
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              {/* Optional Search & Date Filter Bar (Section 18) */}
+              {showFilterBar && (
+                <div className="p-3.5 rounded-xl bg-navy-50/70 border border-navy-200 space-y-3 animate-in fade-in duration-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Search by Text */}
+                    <div className="relative sm:col-span-1">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                      <input
+                        type="text"
+                        placeholder="Search ID, symptoms, state..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-8 pr-2.5 py-1.5 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:outline-hidden focus:border-medical-500"
+                      />
+                    </div>
+
+                    {/* From Date */}
+                    <div>
+                      <input
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs font-mono text-navy-900 bg-white border border-navy-200 rounded-lg focus:outline-hidden focus:border-medical-500"
+                        title="From Date"
+                      />
+                    </div>
+
+                    {/* To Date */}
+                    <div>
+                      <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs font-mono text-navy-900 bg-white border border-navy-200 rounded-lg focus:outline-hidden focus:border-medical-500"
+                        title="To Date"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-navy-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+                      className="inline-flex items-center gap-1.5 font-semibold text-navy-700 hover:text-navy-950"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5 text-medical-600" />
+                      <span>Sort: {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}</span>
+                    </button>
+
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-800 font-semibold"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reset Filters</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Consultation List / Timeline Rendering */}
               {isHistoryLoading ? (
                 <div className="py-8 text-center text-navy-500 flex flex-col items-center justify-center space-y-2">
                   <Clock className="w-6 h-6 animate-spin text-medical-600" />
@@ -427,18 +676,39 @@ export const PatientProfilePage: React.FC = () => {
                     </Button>
                   }
                 />
+              ) : filteredConsultations.length === 0 ? (
+                <div className="py-8 text-center text-navy-500 space-y-2">
+                  <p className="text-xs">No consultations match your filter criteria.</p>
+                  <Button variant="ghost" size="sm" onClick={handleResetFilters}>
+                    Clear Filters
+                  </Button>
+                </div>
+              ) : viewMode === 'timeline' ? (
+                /* Timeline View (Section 8) */
+                <PatientTimeline
+                  consultations={filteredConsultations}
+                  onSelectConsultation={(cId) => setSelectedConsultationId(cId)}
+                  onEditConsultation={(cId) =>
+                    navigate(
+                      `/patients/${patient.patient_id}/consultation/${cId}/edit`
+                    )
+                  }
+                />
               ) : (
+                /* Cards View (Section 3) */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs text-navy-500 font-medium px-1">
                     <span>
-                      {consultationHistory.length}{' '}
-                      {consultationHistory.length === 1 ? 'recorded consultation' : 'recorded consultations'}
+                      Showing {filteredConsultations.length} of {consultationHistory.length}{' '}
+                      {consultationHistory.length === 1 ? 'consultation' : 'consultations'}
                     </span>
-                    <span className="text-[11px] text-navy-400">Ordered by date (newest first)</span>
+                    <span className="text-[11px] text-navy-400">
+                      {sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
+                    </span>
                   </div>
 
                   <div className="divide-y divide-navy-100 rounded-xl border border-navy-200 overflow-hidden bg-white">
-                    {consultationHistory.map((item) => {
+                    {filteredConsultations.map((item) => {
                       const dateObj = new Date(item.consultation_date);
                       const formattedDate = dateObj.toLocaleDateString('en-GB', {
                         day: '2-digit',
@@ -446,12 +716,18 @@ export const PatientProfilePage: React.FC = () => {
                         year: 'numeric',
                       });
 
+                      const followUpStatus = item.follow_up_status || 'No Follow-Up';
+                      const isCompleted = followUpStatus === 'Completed';
+                      const isOverdue = followUpStatus === 'Overdue';
+                      const isScheduled = followUpStatus === 'Scheduled';
+
                       return (
                         <div
                           key={item.consultation_id}
                           className="p-4 hover:bg-navy-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                         >
                           <div className="space-y-1.5 flex-1 min-w-0">
+                            {/* Line 1: Consultation ID, Date, Patient State (Section 3) */}
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-mono text-xs font-bold text-navy-950">
                                 {item.consultation_id}
@@ -466,10 +742,37 @@ export const PatientProfilePage: React.FC = () => {
                                   {item.patient_state_name}
                                 </span>
                               )}
+                              {(item.follow_up_date || item.follow_up_period) && (
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                    isCompleted
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : isOverdue
+                                      ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                      : isScheduled
+                                      ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                      : 'bg-navy-50 text-navy-700 border-navy-200'
+                                  }`}
+                                >
+                                  Follow-Up: {followUpStatus}
+                                </span>
+                              )}
                             </div>
 
-                            {/* Vitals & Summary Badges */}
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
+                            {/* Line 2: Selected Symptoms (Section 3: Symptoms: Headache, Dizziness) */}
+                            {item.symptoms_summary && item.symptoms_summary.length > 0 ? (
+                              <p className="text-xs text-navy-700 font-medium">
+                                <strong className="text-navy-900">Symptoms:</strong>{' '}
+                                {item.symptoms_summary.join(', ')}
+                              </p>
+                            ) : item.symptom_count > 0 ? (
+                              <p className="text-xs text-navy-600">
+                                <strong className="text-navy-900">Symptoms:</strong> {item.symptom_count} recorded
+                              </p>
+                            ) : null}
+
+                            {/* Line 3: Tests count, Medicines count, Vitals, Follow-Up date (Section 3) */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600 pt-0.5">
                               {item.bp_formatted && (
                                 <span className="inline-flex items-center gap-1 font-mono text-navy-800 font-medium">
                                   <Activity className="w-3 h-3 text-medical-600" />
@@ -478,39 +781,39 @@ export const PatientProfilePage: React.FC = () => {
                               )}
                               {item.pulse_rate && <span>{item.pulse_rate} bpm</span>}
                               {item.temperature && <span>{item.temperature} °C</span>}
-                              {item.symptom_count > 0 && (
-                                <span>
-                                  {item.symptom_count}{' '}
-                                  {item.symptom_count === 1 ? 'symptom' : 'symptoms'}
-                                </span>
-                              )}
+
+                              {/* Tests count */}
                               {item.diagnostic_test_count !== undefined && item.diagnostic_test_count > 0 && (
-                                <span className="inline-flex items-center gap-1 font-medium text-navy-700">
+                                <span className="inline-flex items-center gap-1 font-medium text-navy-700 bg-navy-50 px-2 py-0.5 rounded-md border border-navy-200">
                                   <FlaskConical className="w-3 h-3 text-medical-600" />
-                                  {item.diagnostic_test_count}{' '}
-                                  {item.diagnostic_test_count === 1 ? 'test' : 'tests'}
+                                  Tests: {item.diagnostic_test_count}
                                 </span>
                               )}
+
+                              {/* Medicines count */}
                               {item.prescription_count !== undefined && item.prescription_count > 0 && (
                                 <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                                   <Pill className="w-3 h-3 text-emerald-600" />
-                                  {item.prescription_count}{' '}
-                                  {item.prescription_count === 1 ? 'medicine' : 'medicines'}
+                                  Medicines: {item.prescription_count}
                                 </span>
                               )}
-                              {item.mmse_score !== null && item.mmse_score !== undefined && (
-                                <span className="font-semibold text-navy-700">
-                                  MMSE: {item.mmse_score}/30
-                                </span>
-                              )}
-                              {item.gcs_score !== null && item.gcs_score !== undefined && (
-                                <span className="font-semibold text-navy-700">
-                                  GCS: {item.gcs_score}/15
+
+                              {/* Follow-up date / period */}
+                              {item.follow_up_date && (
+                                <span className="inline-flex items-center gap-1 font-medium text-sky-800">
+                                  <CalendarClock className="w-3 h-3 text-sky-600" />
+                                  Follow-up:{' '}
+                                  {new Date(item.follow_up_date).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
                                 </span>
                               )}
                             </div>
                           </div>
 
+                          {/* Action Buttons (Section 3 & 5: [View Consultation] & [Edit Consultation]) */}
                           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
                             <Button
                               variant="outline"
@@ -519,7 +822,7 @@ export const PatientProfilePage: React.FC = () => {
                               leftIcon={<Eye className="w-3.5 h-3.5" />}
                               className="text-xs"
                             >
-                              View Record
+                              View Consultation
                             </Button>
                             <Button
                               variant="ghost"
@@ -546,15 +849,16 @@ export const PatientProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── CONSULTATION DETAIL MODAL ─── */}
+      {/* ─── CONSULTATION DETAIL MODAL (Section 4 & 5) ─── */}
       <ConsultationDetailModal
         consultationId={selectedConsultationId}
         isOpen={!!selectedConsultationId}
         onClose={() => setSelectedConsultationId(null)}
+        onNavigateConsultation={(id) => setSelectedConsultationId(id)}
+        allConsultations={consultationHistory}
       />
 
-
-      {/* ─── DEACTIVATION CONFIRMATION DIALOG (Section 23) ─── */}
+      {/* ─── DEACTIVATION CONFIRMATION DIALOG ─── */}
       <ConfirmationDialog
         isOpen={isDeactivateDialogOpen}
         onClose={() => setIsDeactivateDialogOpen(false)}

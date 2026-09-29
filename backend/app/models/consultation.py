@@ -7,6 +7,7 @@ from sqlalchemy import (
     Text,
     Float,
     DateTime,
+    Date,
     ForeignKey,
     Index,
 )
@@ -54,6 +55,13 @@ class Consultation(Base):
     additional_examination = Column(Text, nullable=True)  # Non-neurological / extra exam findings
     treatment_plan = Column(Text, nullable=True)  # Treatment plan documentation (no medicine rows)
 
+    # Phase 7 Follow-Up Management fields
+    follow_up_option_id = Column(Integer, ForeignKey("follow_up_options.id", ondelete="SET NULL"), nullable=True)
+    follow_up_period = Column(String(255), nullable=True)
+    follow_up_date = Column(Date, nullable=True, index=True)
+    follow_up_instructions = Column(Text, nullable=True)
+    follow_up_status = Column(String(50), nullable=True, default="No Follow-Up")
+
     # Standard audit timestamps
     created_at = Column(
         DateTime(timezone=True),
@@ -71,6 +79,7 @@ class Consultation(Base):
     patient = relationship("Patient", backref="consultations")
     doctor = relationship("User", foreign_keys=[doctor_id])
     patient_state = relationship("PatientState", foreign_keys=[patient_state_id])
+    follow_up_option = relationship("FollowUpOption", foreign_keys=[follow_up_option_id])
 
     vitals = relationship(
         "ConsultationVitals",

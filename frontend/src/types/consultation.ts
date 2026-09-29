@@ -89,6 +89,11 @@ export interface Consultation {
   clinical_description?: string | null;
   additional_examination?: string | null;
   treatment_plan?: string | null;
+  follow_up_option_id?: number | null;
+  follow_up_period?: string | null;
+  follow_up_date?: string | null;
+  follow_up_instructions?: string | null;
+  follow_up_status?: string | null;
   created_at: string;
   updated_at: string;
   patient?: Patient;
@@ -116,6 +121,11 @@ export interface ConsultationSummary {
   bp_formatted?: string | null;
   pulse_rate?: number | null;
   temperature?: number | null;
+  follow_up_period?: string | null;
+  follow_up_date?: string | null;
+  follow_up_instructions?: string | null;
+  follow_up_status?: string | null;
+  symptoms_summary?: string[];
   created_at: string;
 }
 
@@ -131,6 +141,10 @@ export interface ConsultationCreatePayload {
   clinical_description?: string | null;
   additional_examination?: string | null;
   treatment_plan?: string | null;
+  follow_up_option_id?: number | null;
+  follow_up_period?: string | null;
+  follow_up_date?: string | null;
+  follow_up_instructions?: string | null;
   vitals?: ConsultationVitals;
   symptoms: ConsultationSymptom[];
   examinations: ConsultationExamination[];

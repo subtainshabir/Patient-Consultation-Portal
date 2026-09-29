@@ -11,6 +11,7 @@ export interface SaveConsultationBarProps {
   examinationsCount?: number;
   diagnosticTestCount?: number;
   prescriptionCount?: number;
+  hasFollowUp?: boolean;
   isEditMode?: boolean;
   onCancel?: () => void;
 }
@@ -24,6 +25,7 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
   examinationsCount = 0,
   diagnosticTestCount = 0,
   prescriptionCount = 0,
+  hasFollowUp = false,
   isEditMode = false,
   onCancel,
 }) => {
@@ -54,7 +56,7 @@ export const SaveConsultationBar: React.FC<SaveConsultationBarProps> = ({
             <span className="text-navy-300 hidden sm:inline">•</span>
 
             <span className="hidden sm:inline text-navy-600">
-              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings, {diagnosticTestCount} tests{prescriptionCount > 0 ? `, ${prescriptionCount} ${prescriptionCount === 1 ? 'medicine' : 'medicines'}` : ''}
+              {symptomCount} {symptomCount === 1 ? 'symptom' : 'symptoms'}, {examinationsCount} exam findings, {diagnosticTestCount} tests{prescriptionCount > 0 ? `, ${prescriptionCount} ${prescriptionCount === 1 ? 'medicine' : 'medicines'}` : ''}{hasFollowUp ? ', Follow-up configured' : ''}
             </span>
 
           </div>

@@ -21,6 +21,7 @@ import { ClinicalAssessmentSection } from '../../components/consultation/Clinica
 import { AdditionalExaminationSection } from '../../components/consultation/AdditionalExaminationSection';
 import { TreatmentPlanSection } from '../../components/consultation/TreatmentPlanSection';
 import { PrescriptionSection } from '../../components/consultation/PrescriptionSection';
+import { FollowUpSection } from '../../components/consultation/FollowUpSection';
 import { SaveConsultationBar } from '../../components/consultation/SaveConsultationBar';
 import { ConsultationSuccessModal } from '../../components/consultation/ConsultationSuccessModal';
 import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
@@ -135,6 +136,12 @@ export const NewConsultationPage: React.FC = () => {
   // Phase 6 Field
   const [prescriptions, setPrescriptions] = useState<PrescriptionItem[]>([]);
 
+  // Phase 7 Follow-Up Fields
+  const [followUpOptionId, setFollowUpOptionId] = useState<number | null>(null);
+  const [followUpPeriod, setFollowUpPeriod] = useState<string | null>(null);
+  const [followUpDate, setFollowUpDate] = useState<string | null>(null);
+  const [followUpInstructions, setFollowUpInstructions] = useState<string>('');
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState<boolean>(false);
 
@@ -185,6 +192,18 @@ export const NewConsultationPage: React.FC = () => {
       }
       if (existingConsultation.prescriptions) {
         setPrescriptions(existingConsultation.prescriptions);
+      }
+      if (existingConsultation.follow_up_option_id !== undefined) {
+        setFollowUpOptionId(existingConsultation.follow_up_option_id);
+      }
+      if (existingConsultation.follow_up_period !== undefined) {
+        setFollowUpPeriod(existingConsultation.follow_up_period);
+      }
+      if (existingConsultation.follow_up_date !== undefined) {
+        setFollowUpDate(existingConsultation.follow_up_date);
+      }
+      if (existingConsultation.follow_up_instructions !== undefined) {
+        setFollowUpInstructions(existingConsultation.follow_up_instructions || '');
       }
       setIsDirty(false);
     }
@@ -332,6 +351,10 @@ export const NewConsultationPage: React.FC = () => {
       clinical_description: clinicalDescription.trim() || null,
       additional_examination: additionalExamination.trim() || null,
       treatment_plan: treatmentPlan.trim() || null,
+      follow_up_option_id: followUpOptionId,
+      follow_up_period: followUpPeriod?.trim() || null,
+      follow_up_date: followUpDate || null,
+      follow_up_instructions: followUpInstructions.trim() || null,
       vitals: vitals,
       symptoms: symptoms,
       examinations: validExams,
@@ -540,7 +563,28 @@ export const NewConsultationPage: React.FC = () => {
         errors={formErrors}
       />
 
-      {/* ─── 14. Sticky Save Action Bar ─── */}
+      {/* ─── 14. Follow-Up Management (Phase 7) ─── */}
+      <FollowUpSection
+        followUpOptionId={followUpOptionId}
+        followUpPeriod={followUpPeriod}
+        followUpDate={followUpDate}
+        followUpInstructions={followUpInstructions}
+        onChangeOption={(optId, pName) => {
+          setFollowUpOptionId(optId);
+          setFollowUpPeriod(pName);
+          markDirty();
+        }}
+        onChangeDate={(date) => {
+          setFollowUpDate(date);
+          markDirty();
+        }}
+        onChangeInstructions={(instructions) => {
+          setFollowUpInstructions(instructions);
+          markDirty();
+        }}
+      />
+
+      {/* ─── 15. Sticky Save Action Bar ─── */}
       <SaveConsultationBar
         onSave={handleSave}
         isSaving={saveMutation.isPending}
@@ -550,6 +594,7 @@ export const NewConsultationPage: React.FC = () => {
         examinationsCount={examinations.length}
         diagnosticTestCount={diagnosticTests.length}
         prescriptionCount={prescriptions.length}
+        hasFollowUp={Boolean(followUpPeriod || followUpDate || (followUpInstructions && followUpInstructions.trim()))}
         isEditMode={isEditMode}
         onCancel={handleBack}
       />
@@ -571,6 +616,8 @@ export const NewConsultationPage: React.FC = () => {
         consultationId={selectedHistoryDetailId}
         isOpen={!!selectedHistoryDetailId}
         onClose={() => setSelectedHistoryDetailId(null)}
+        onNavigateConsultation={(id) => setSelectedHistoryDetailId(id)}
+        allConsultations={patientHistory}
       />
 
       {/* ─── Success Modal after Save ─── */}

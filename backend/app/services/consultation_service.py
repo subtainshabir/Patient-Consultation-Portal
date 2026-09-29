@@ -6,7 +6,14 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc, asc, func
 
 from app.models.patient import Patient
-from app.models.master_data import PatientState, Symptom, NeurologicalExamOption, DiagnosticTest, Medicine
+from app.models.master_data import (
+    PatientState,
+    Symptom,
+    NeurologicalExamOption,
+    DiagnosticTest,
+    Medicine,
+    FollowUpOption,
+)
 from app.models.consultation import (
     Consultation,
     ConsultationVitals,
@@ -93,6 +100,23 @@ def create_consultation(
         if p_state:
             resolved_state_name = p_state.name
 
+    # Validate / resolve follow-up period
+    resolved_follow_up_period = consultation_in.follow_up_period.strip() if consultation_in.follow_up_period else None
+    if consultation_in.follow_up_option_id and not resolved_follow_up_period:
+        f_opt = db.query(FollowUpOption).filter(FollowUpOption.id == consultation_in.follow_up_option_id).first()
+        if f_opt:
+            resolved_follow_up_period = f_opt.urdu_label or f_opt.name
+
+    # Calculate follow-up status
+    f_status = "No Follow-Up"
+    if consultation_in.follow_up_date:
+        if consultation_in.follow_up_date < now.date():
+            f_status = "Overdue"
+        else:
+            f_status = "Scheduled"
+    elif resolved_follow_up_period:
+        f_status = "Scheduled" if resolved_follow_up_period not in ["حسبِ ضرورت", "As needed"] else "As Needed"
+
     try:
         # 1. Main Consultation Entity
         consultation = Consultation(
@@ -110,6 +134,11 @@ def create_consultation(
             clinical_description=consultation_in.clinical_description.strip() if consultation_in.clinical_description else None,
             additional_examination=consultation_in.additional_examination.strip() if consultation_in.additional_examination else None,
             treatment_plan=consultation_in.treatment_plan.strip() if consultation_in.treatment_plan else None,
+            follow_up_option_id=consultation_in.follow_up_option_id,
+            follow_up_period=resolved_follow_up_period,
+            follow_up_date=consultation_in.follow_up_date,
+            follow_up_instructions=consultation_in.follow_up_instructions.strip() if consultation_in.follow_up_instructions else None,
+            follow_up_status=f_status,
             created_at=now,
             updated_at=now,
         )
@@ -340,6 +369,36 @@ def update_consultation(
         consultation.clinical_description = consultation_in.clinical_description.strip() if consultation_in.clinical_description else None
         consultation.additional_examination = consultation_in.additional_examination.strip() if consultation_in.additional_examination else None
         consultation.treatment_plan = consultation_in.treatment_plan.strip() if consultation_in.treatment_plan else None
+
+        # Resolve follow-up period and status
+        resolved_follow_up_period = consultation_in.follow_up_period.strip() if consultation_in.follow_up_period else None
+        if consultation_in.follow_up_option_id and not resolved_follow_up_period:
+            f_opt = db.query(FollowUpOption).filter(FollowUpOption.id == consultation_in.follow_up_option_id).first()
+            if f_opt:
+                resolved_follow_up_period = f_opt.urdu_label or f_opt.name
+
+        f_status = "No Follow-Up"
+        if consultation_in.follow_up_date:
+            subsequent = db.query(Consultation.id).filter(
+                Consultation.patient_id == consultation.patient_id,
+                Consultation.id != consultation.id,
+                Consultation.consultation_date > consultation.consultation_date,
+            ).first()
+            if subsequent:
+                f_status = "Completed"
+            elif consultation_in.follow_up_date < now.date():
+                f_status = "Overdue"
+            else:
+                f_status = "Scheduled"
+        elif resolved_follow_up_period:
+            f_status = "Scheduled" if resolved_follow_up_period not in ["حسبِ ضرورت", "As needed"] else "As Needed"
+
+        consultation.follow_up_option_id = consultation_in.follow_up_option_id
+        consultation.follow_up_period = resolved_follow_up_period
+        consultation.follow_up_date = consultation_in.follow_up_date
+        consultation.follow_up_instructions = consultation_in.follow_up_instructions.strip() if consultation_in.follow_up_instructions else None
+        consultation.follow_up_status = f_status
+
         consultation.updated_at = now
 
         # 2. Update vitals
@@ -553,8 +612,35 @@ def get_consultation_by_id(db: Session, consultation_identifier: str) -> Optiona
     )
 
     if clean_id.isdigit():
-        return query.filter(or_(Consultation.id == int(clean_id), Consultation.consultation_id.ilike(clean_id))).first()
-    return query.filter(Consultation.consultation_id.ilike(clean_id)).first()
+        consultation = query.filter(or_(Consultation.id == int(clean_id), Consultation.consultation_id.ilike(clean_id))).first()
+    else:
+        consultation = query.filter(Consultation.consultation_id.ilike(clean_id)).first()
+
+    if consultation:
+        # Dynamically derive follow-up status based on subsequent records or calendar date
+        now_date = datetime.now(timezone.utc).date()
+        subsequent = db.query(Consultation.id).filter(
+            Consultation.patient_id == consultation.patient_id,
+            Consultation.id != consultation.id,
+            Consultation.consultation_date > consultation.consultation_date,
+        ).first()
+
+        if subsequent and (consultation.follow_up_date or consultation.follow_up_period):
+            consultation.follow_up_status = "Completed"
+        elif consultation.follow_up_date:
+            if consultation.follow_up_date < now_date:
+                consultation.follow_up_status = "Overdue"
+            else:
+                consultation.follow_up_status = "Scheduled"
+        elif consultation.follow_up_period:
+            if consultation.follow_up_period in ["حسبِ ضرورت", "As needed", "as needed"]:
+                consultation.follow_up_status = "As Needed"
+            else:
+                consultation.follow_up_status = "Scheduled"
+        else:
+            consultation.follow_up_status = "No Follow-Up"
+
+    return consultation
 
 
 def list_patient_consultations(
@@ -620,7 +706,10 @@ def list_all_consultations(
     return items, total
 
 
-def build_consultation_summary(consultation: Consultation) -> ConsultationSummaryResponse:
+def build_consultation_summary(
+    consultation: Consultation,
+    has_subsequent: bool = False,
+) -> ConsultationSummaryResponse:
     """
     Helper to convert a Consultation ORM model into a ConsultationSummaryResponse.
     """
@@ -635,6 +724,26 @@ def build_consultation_summary(consultation: Consultation) -> ConsultationSummar
         temp = consultation.vitals.temperature
         if consultation.vitals.systolic_bp is not None and consultation.vitals.diastolic_bp is not None:
             bp_formatted = f"{consultation.vitals.systolic_bp} / {consultation.vitals.diastolic_bp} mmHg"
+
+    now_date = datetime.now(timezone.utc).date()
+    f_status = consultation.follow_up_status or "No Follow-Up"
+    if has_subsequent:
+        if consultation.follow_up_date or consultation.follow_up_period:
+            f_status = "Completed"
+    elif consultation.follow_up_date:
+        if consultation.follow_up_date < now_date:
+            f_status = "Overdue"
+        else:
+            f_status = "Scheduled"
+    elif consultation.follow_up_period:
+        if consultation.follow_up_period in ["حسبِ ضرورت", "As needed", "as needed"]:
+            f_status = "As Needed"
+        elif f_status != "Completed":
+            f_status = "Scheduled"
+    else:
+        f_status = "No Follow-Up"
+
+    symptoms_summary = [s.symptom_name for s in consultation.symptoms] if consultation.symptoms else []
 
     return ConsultationSummaryResponse(
         id=consultation.id,
@@ -653,5 +762,10 @@ def build_consultation_summary(consultation: Consultation) -> ConsultationSummar
         bp_formatted=bp_formatted,
         pulse_rate=pulse,
         temperature=temp,
+        follow_up_period=consultation.follow_up_period,
+        follow_up_date=consultation.follow_up_date,
+        follow_up_instructions=consultation.follow_up_instructions,
+        follow_up_status=f_status,
+        symptoms_summary=symptoms_summary,
         created_at=consultation.created_at,
     )

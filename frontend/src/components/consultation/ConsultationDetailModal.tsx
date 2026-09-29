@@ -15,6 +15,10 @@ import {
   Edit3,
   Calendar,
   Pill,
+  CalendarClock,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import { Dialog, DialogHeader, DialogContent, DialogFooter } from '../ui/Dialog';
@@ -25,12 +29,16 @@ export interface ConsultationDetailModalProps {
   consultationId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  onNavigateConsultation?: (consultationId: string) => void;
+  allConsultations?: { consultation_id: string; consultation_date?: string }[];
 }
 
 export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = ({
   consultationId,
   isOpen,
   onClose,
+  onNavigateConsultation,
+  allConsultations = [],
 }) => {
   const navigate = useNavigate();
   const { data: consultation, isLoading, error } = useQuery({
@@ -40,6 +48,25 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
   });
 
   if (!isOpen) return null;
+
+  // Consultation navigation logic (newest to oldest index)
+  const currentIndex = allConsultations.findIndex(
+    (c) => c.consultation_id === consultationId
+  );
+  const hasOlder = currentIndex !== -1 && currentIndex < allConsultations.length - 1;
+  const hasNewer = currentIndex !== -1 && currentIndex > 0;
+
+  const handlePrevOlder = () => {
+    if (hasOlder && onNavigateConsultation) {
+      onNavigateConsultation(allConsultations[currentIndex + 1].consultation_id);
+    }
+  };
+
+  const handleNextNewer = () => {
+    if (hasNewer && onNavigateConsultation) {
+      onNavigateConsultation(allConsultations[currentIndex - 1].consultation_id);
+    }
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} maxWidth="xl">
@@ -70,36 +97,54 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Patient Header Banner */}
+            {/* ─── 1. Patient Information (Section 4) ─── */}
             {consultation.patient && (
-              <div className="p-3.5 rounded-xl bg-navy-50 border border-navy-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-medical-600 text-white flex items-center justify-center font-bold">
-                    <User className="w-4 h-4" />
+              <div className="p-4 rounded-xl bg-navy-50/80 border border-navy-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-medical-700 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                    <User className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="font-mono font-bold text-navy-900 mr-2">
-                      {consultation.patient.patient_id}
-                    </span>
-                    <span className="font-bold text-navy-950">
-                      {consultation.patient.full_name}
-                    </span>
-                    <span className="text-navy-400 mx-1.5">•</span>
-                    <span className="text-navy-600">
-                      {consultation.patient.age} yrs • {consultation.patient.gender}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-bold text-navy-950 text-sm">
+                        {consultation.patient.full_name}
+                      </span>
+                      <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-white border border-navy-200 text-medical-800 font-bold">
+                        {consultation.patient.patient_id}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-navy-600">
+                      <span>{consultation.patient.age} yrs</span>
+                      <span>•</span>
+                      <span>{consultation.patient.gender}</span>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 font-mono">
+                        <Phone className="w-3 h-3 text-navy-400" />
+                        {consultation.patient.mobile_number}
+                      </span>
+                      {consultation.patient.cnic && (
+                        <>
+                          <span>•</span>
+                          <span className="font-mono text-[11px] text-navy-500">
+                            CNIC: {consultation.patient.cnic}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {consultation.patient_state_name && (
-                  <span className="px-2.5 py-0.5 rounded-full font-semibold bg-white border border-navy-200 text-navy-800">
-                    State: {consultation.patient_state_name}
-                  </span>
+                  <div className="self-start sm:self-auto">
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white border border-medical-200 text-medical-800 shadow-2xs">
+                      State: {consultation.patient_state_name}
+                    </span>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Vital Signs Card */}
+            {/* ─── 2. Vital Signs (Section 4) ─── */}
             {consultation.vitals && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
@@ -162,7 +207,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               </div>
             )}
 
-            {/* Symptoms Section */}
+            {/* ─── 3. Symptoms (Section 4) ─── */}
             <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white">
               <h4 className="text-xs font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
                 <Stethoscope className="w-3.5 h-3.5 text-medical-600" />
@@ -196,7 +241,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               )}
             </div>
 
-            {/* Neurological Examination Section */}
+            {/* ─── 4. Neurological Examination (Section 4) ─── */}
             {consultation.examinations && consultation.examinations.length > 0 && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
@@ -247,7 +292,6 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
 
             {/* Scores & Observations */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Mental Status Scores */}
               <div className="rounded-xl border border-navy-200 p-4 space-y-2 bg-white text-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 block">
                   Mental Status Scores
@@ -272,32 +316,19 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
                 </div>
               </div>
 
-              {/* Power Field if present */}
-              {consultation.power_text && (
-                <div className="rounded-xl border border-navy-200 p-4 space-y-2 bg-white text-xs">
+              {consultation.additional_observations && (
+                <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 block">
-                    Power Assessment
+                    Additional Observations
                   </span>
-                  <p className="text-xs font-semibold text-navy-900 pt-1">
-                    {consultation.power_text}
+                  <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed">
+                    {consultation.additional_observations}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Additional Observations */}
-            {consultation.additional_observations && (
-              <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 block">
-                  Additional Clinical Observations
-                </span>
-                <p className="text-xs text-navy-800 whitespace-pre-wrap leading-relaxed bg-navy-50/50 p-3 rounded-lg border border-navy-100">
-                  {consultation.additional_observations}
-                </p>
-              </div>
-            )}
-
-            {/* ─── Phase 5: Diagnostic Tests ─── */}
+            {/* ─── 5. Diagnostic Tests (Section 4) ─── */}
             {consultation.diagnostic_tests && consultation.diagnostic_tests.length > 0 && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
@@ -369,7 +400,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               </div>
             )}
 
-            {/* ─── Phase 5: Clinical Assessment ─── */}
+            {/* ─── 6. Clinical Assessment (Section 4) ─── */}
             {consultation.clinical_description && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
@@ -382,7 +413,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               </div>
             )}
 
-            {/* ─── Phase 5: Additional Examination ─── */}
+            {/* Additional Examination */}
             {consultation.additional_examination && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
@@ -395,7 +426,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               </div>
             )}
 
-            {/* ─── Phase 5: Treatment Plan ─── */}
+            {/* Treatment Plan */}
             {consultation.treatment_plan && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-1.5 bg-white text-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
@@ -408,7 +439,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
               </div>
             )}
 
-            {/* ─── Phase 6: Prescription ─── */}
+            {/* ─── 7. Prescription (Section 4 & 15) ─── */}
             {consultation.prescriptions && consultation.prescriptions.length > 0 && (
               <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white text-xs">
                 <div className="flex items-center justify-between">
@@ -462,14 +493,98 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
                 </div>
               </div>
             )}
+
+            {/* ─── 8. Follow-Up (Section 4, 7, 9, 10, 14) ─── */}
+            {(consultation.follow_up_period || consultation.follow_up_date || consultation.follow_up_instructions) && (
+              <div className="rounded-xl border border-navy-200 p-4 space-y-3 bg-white text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy-400 flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5 text-medical-600" />
+                    <span>Follow-Up Information</span>
+                  </span>
+                  <span
+                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border ${
+                      consultation.follow_up_status === 'Completed'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : consultation.follow_up_status === 'Overdue'
+                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                        : consultation.follow_up_status === 'Scheduled'
+                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                        : 'bg-navy-50 text-navy-700 border-navy-200'
+                    }`}
+                  >
+                    {consultation.follow_up_status || 'Scheduled'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg bg-navy-50/60 border border-navy-100">
+                  <div>
+                    <span className="text-[11px] text-navy-500 block">Follow-Up Period:</span>
+                    <span className="font-bold text-navy-900 text-sm font-mono" dir="rtl">
+                      {consultation.follow_up_period || 'Not specified'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-navy-500 block">Target Follow-Up Date:</span>
+                    <span className="font-semibold text-navy-900 text-sm">
+                      {consultation.follow_up_date
+                        ? new Date(consultation.follow_up_date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'As needed / No exact date'}
+                    </span>
+                  </div>
+                </div>
+
+                {consultation.follow_up_instructions && (
+                  <div className="p-3 rounded-lg bg-white border border-navy-200">
+                    <span className="text-[11px] font-semibold text-navy-500 block mb-1">
+                      Follow-Up Instructions:
+                    </span>
+                    <p className="text-navy-800 whitespace-pre-wrap leading-relaxed">
+                      {consultation.follow_up_instructions}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
 
-      <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Close
-        </Button>
+      <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+        {/* Navigation between consultations (Section 9 & 23) */}
+        <div className="flex items-center gap-2">
+          {hasOlder && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevOlder}
+              leftIcon={<ChevronLeft className="w-3.5 h-3.5" />}
+              className="text-xs"
+              title="View previous older consultation"
+            >
+              Older
+            </Button>
+          )}
+          {hasNewer && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextNewer}
+              rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
+              className="text-xs"
+              title="View next newer consultation"
+            >
+              Newer
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-xs text-navy-500">
+            Close
+          </Button>
+        </div>
 
         {consultation && (
           <Button

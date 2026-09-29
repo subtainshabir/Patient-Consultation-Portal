@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.schemas.patient import PatientResponse
@@ -174,6 +174,12 @@ class ConsultationCreate(BaseModel):
     additional_examination: Optional[str] = Field(None, description="Findings outside structured neuro examination")
     treatment_plan: Optional[str] = Field(None, description="Non-pharmacological and clinical treatment plan")
 
+    # Phase 7 Follow-Up Management
+    follow_up_option_id: Optional[int] = None
+    follow_up_period: Optional[str] = Field(None, max_length=255, description="Follow-up period description, e.g. 1 week later / 1 ہفتے بعد")
+    follow_up_date: Optional[date] = Field(None, description="Exact follow-up date (YYYY-MM-DD)")
+    follow_up_instructions: Optional[str] = Field(None, description="Follow-up instructions or notes")
+
     vitals: Optional[ConsultationVitalsCreate] = None
     symptoms: Optional[List[ConsultationSymptomCreate]] = Field(default_factory=list)
     examinations: Optional[List[ConsultationExaminationCreate]] = Field(default_factory=list)
@@ -203,6 +209,13 @@ class ConsultationResponse(BaseModel):
     clinical_description: Optional[str] = None
     additional_examination: Optional[str] = None
     treatment_plan: Optional[str] = None
+
+    # Phase 7 Follow-Up fields
+    follow_up_option_id: Optional[int] = None
+    follow_up_period: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    follow_up_instructions: Optional[str] = None
+    follow_up_status: Optional[str] = None
 
     created_at: datetime
     updated_at: datetime
@@ -234,6 +247,11 @@ class ConsultationSummaryResponse(BaseModel):
     bp_formatted: Optional[str] = None
     pulse_rate: Optional[int] = None
     temperature: Optional[float] = None
+    follow_up_period: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    follow_up_instructions: Optional[str] = None
+    follow_up_status: Optional[str] = None
+    symptoms_summary: List[str] = []
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

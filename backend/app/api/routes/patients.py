@@ -201,5 +201,10 @@ def get_patient_consultations(
             detail=f"Patient with ID '{patient_id}' not found."
         )
     consultations = list_patient_consultations(db, patient_id)
-    return [build_consultation_summary(c) for c in consultations]
+    summaries = []
+    for idx, c in enumerate(consultations):
+        # Ordered newest first: any consultation with index > 0 has a subsequent consultation
+        has_subsequent = idx > 0
+        summaries.append(build_consultation_summary(c, has_subsequent=has_subsequent))
+    return summaries
 
