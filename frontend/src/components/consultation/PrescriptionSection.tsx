@@ -4,12 +4,13 @@ import {
   Search,
   Plus,
   Trash2,
-  Check,
   AlertCircle,
   FileText,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { cn } from '../../utils/cn';
 import { masterDataService } from '../../services/masterDataService';
 import { useToast } from '../../hooks/useToast';
 import type {
@@ -96,6 +97,8 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
 }) => {
   const { success } = useToast();
 
+  const [isSectionOpen, setIsSectionOpen] = useState(true);
+
   // Master data lists
   const [masterMedicines, setMasterMedicines] = useState<Medicine[]>([]);
   const [masterFrequencies, setMasterFrequencies] = useState<MedicineFrequency[]>([]);
@@ -158,104 +161,79 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
   const handleAddMedicine = () => {
     const newItem: PrescriptionItem = {
       medicine_name: '',
+      medicine_id: null,
       frequency_name: 'صبح و شام',
+      frequency_id: null,
       dosage: '1 tablet',
       duration_days: 7,
       instruction_name: 'کھانے کے بعد',
+      instruction_id: null,
       custom_instruction: null,
-      sort_order: prescriptions.length,
     };
-    const updated = [...prescriptions, newItem];
-    onChange(updated);
-
-    // Open search for new item and focus it
-    const newIdx = updated.length - 1;
-    setActiveSearchIndex(newIdx);
-    setSearchQueries((prev) => ({ ...prev, [newIdx]: '' }));
-    setTimeout(() => {
-      searchInputRefs.current[newIdx]?.focus();
-    }, 50);
+    onChange([...prescriptions, newItem]);
   };
 
   // Remove a prescription item
   const handleRemoveMedicine = (index: number) => {
-    const updated = prescriptions.filter((_, idx) => idx !== index);
-    // Re-index sort_order
-    const reordered = updated.map((item, idx) => ({ ...item, sort_order: idx }));
-    onChange(reordered);
-    if (activeSearchIndex === index) {
-      setActiveSearchIndex(null);
-    }
-  };
-
-  // Update a field in a specific prescription item
-  const handleUpdateItem = (index: number, updates: Partial<PrescriptionItem>) => {
-    const updated = prescriptions.map((item, idx) => {
-      if (idx === index) {
-        return { ...item, ...updates };
-      }
-      return item;
-    });
+    const updated = prescriptions.filter((_, i) => i !== index);
     onChange(updated);
   };
 
-  // Select a master data medicine for a specific prescription row
+  // Update a single prescription field
+  const handleUpdateItem = (index: number, updates: Partial<PrescriptionItem>) => {
+    const updated = [...prescriptions];
+    updated[index] = { ...updated[index], ...updates };
+    onChange(updated);
+  };
+
+  // Select a medicine from dropdown
   const handleSelectMedicine = (index: number, med: Medicine) => {
+    const defaultInstruction = 'کھانے کے بعد';
+    const defaultFrequency = 'صبح و شام';
+    const defaultDosage = med.strength ? `${med.strength} (1 tablet)` : '1 tablet';
+
     handleUpdateItem(index, {
-      medicine_id: med.id,
       medicine_name: med.name,
+      medicine_id: med.id,
+      dosage: defaultDosage,
+      frequency_name: defaultFrequency,
+      instruction_name: defaultInstruction,
     });
+
     setActiveSearchIndex(null);
     setSearchQueries((prev) => ({ ...prev, [index]: '' }));
   };
 
-  // Create a new medicine on the fly and select it
-  const handleCreateCustomMedicine = async (index: number, rawName: string) => {
-    const trimmed = rawName.trim();
+  // Create custom medicine on the fly
+  const handleCreateCustomMedicine = async (index: number, queryName: string) => {
+    const trimmed = queryName.trim();
     if (!trimmed) return;
-
-    // Duplicate check: normalized whitespace and case-insensitive
-    const normalized = trimmed.toLowerCase();
-    const existing = masterMedicines.find(
-      (m) => m.name.trim().toLowerCase() === normalized
-    );
-
-    if (existing) {
-      // Select the existing medicine without creating duplicate
-      handleSelectMedicine(index, existing);
-      success(`Selected existing master medicine "${existing.name}".`);
-      return;
-    }
 
     try {
       const created = await masterDataService.createItem<Medicine>('medicines', {
         name: trimmed,
         form: 'Tablet',
         is_active: true,
+        sort_order: 0,
       });
 
-      // Add to local master medicines list
       setMasterMedicines((prev) => [...prev, created]);
       handleSelectMedicine(index, created);
-      success(`Added "${created.name}" to medicine master data and prescription.`);
+      success(`Added "${created.name}" to medicine catalog.`);
     } catch {
-      // If master data creation fails (e.g. offline/network), still allow selecting as custom name
       handleUpdateItem(index, {
-        medicine_id: null,
         medicine_name: trimmed,
+        medicine_id: null,
       });
       setActiveSearchIndex(null);
       setSearchQueries((prev) => ({ ...prev, [index]: '' }));
-      success(`Prescribed "${trimmed}".`);
     }
   };
 
-  // Filter medicines for active row search query
+  // Filter medicines by query
   const getFilteredMedicines = (query: string): Medicine[] => {
     const q = query.trim().toLowerCase();
-    if (!q) {
-      return masterMedicines.slice(0, 15);
-    }
+    if (!q) return masterMedicines.slice(0, 15);
     return masterMedicines
       .filter((m) => {
         const nameMatch = m.name.toLowerCase().includes(q);
@@ -268,52 +246,63 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
   };
 
   return (
-    <Card className="border-medical-200 shadow-sm overflow-hidden" id="prescription-section">
-      <CardHeader className="bg-gradient-to-r from-medical-50/80 via-white to-navy-50/50 border-b border-medical-100 p-4 sm:p-5">
+    <Card className="border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden bg-white dark:bg-slate-900" id="prescription-section">
+      <CardHeader className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-medical-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-primary-600 dark:bg-primary-500 text-white flex items-center justify-center shadow-xs shrink-0">
               <Pill className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base sm:text-lg font-bold text-navy-950">
+                <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
                   Prescription
                 </CardTitle>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-medical-100 text-medical-800 border border-medical-200">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60">
                   {prescriptions.length} {prescriptions.length === 1 ? 'Medicine' : 'Medicines'}
                 </span>
               </div>
-              <p className="text-xs text-navy-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Searchable medicines, local Urdu frequencies, standard dosages, and duration in days
               </p>
             </div>
           </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={handleAddMedicine}
-            leftIcon={<Plus className="w-4 h-4" />}
-            className="shadow-sm font-semibold shrink-0"
-            id="add-medicine-btn"
-          >
-            + Add Medicine
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleAddMedicine}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="shadow-sm font-semibold shrink-0"
+              id="add-medicine-btn"
+            >
+              + Add Medication
+            </Button>
+            <button
+              type="button"
+              onClick={() => setIsSectionOpen((prev) => !prev)}
+              className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label={isSectionOpen ? "Collapse Prescription" : "Expand Prescription"}
+            >
+              <ChevronDown className={cn("w-5 h-5 transition-transform duration-200", isSectionOpen && "rotate-180")} />
+            </button>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 sm:p-6 space-y-5 bg-navy-50/20">
+      {isSectionOpen && (
+        <CardContent className="p-4 sm:p-6 space-y-5 bg-slate-50/30 dark:bg-slate-900/50 animate-in fade-in duration-150">
         {/* Prescription List */}
         {prescriptions.length === 0 ? (
-          <div className="text-center py-10 px-4 rounded-xl border-2 border-dashed border-navy-200 bg-white space-y-3">
-            <div className="w-12 h-12 rounded-full bg-medical-50 text-medical-600 flex items-center justify-center mx-auto">
+          <div className="text-center py-10 px-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+            <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center mx-auto">
               <Pill className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-navy-800">No medicines prescribed yet</h4>
-              <p className="text-xs text-navy-500 max-w-md mx-auto mt-1">
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">No medicines prescribed yet</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1">
                 Add medicines to this consultation with doctor-friendly Urdu frequencies, flexible dosages, and treatment duration.
               </p>
             </div>
@@ -323,7 +312,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
               size="sm"
               onClick={handleAddMedicine}
               leftIcon={<Plus className="w-4 h-4" />}
-              className="mt-2 text-medical-700 border-medical-300 hover:bg-medical-50"
+              className="mt-2 text-primary-700 dark:text-primary-400 border-primary-300 dark:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-950/40"
             >
               Add First Medicine
             </Button>
@@ -365,19 +354,19 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
               return (
                 <div
                   key={index}
-                  className="rounded-xl border border-navy-200/90 bg-white p-4 sm:p-5 shadow-sm transition-all hover:border-medical-300 space-y-4"
+                  className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-2xs transition-all hover:border-primary-300 dark:hover:border-primary-700/60 space-y-4"
                 >
                   {/* Card Header: Medicine Number & Remove */}
-                  <div className="flex items-center justify-between pb-3 border-b border-navy-100">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-md bg-medical-100 text-medical-800 text-xs font-bold flex items-center justify-center">
+                      <span className="w-6 h-6 rounded-md bg-primary-100 dark:bg-primary-950/60 text-primary-800 dark:text-primary-300 text-xs font-bold flex items-center justify-center">
                         {index + 1}
                       </span>
-                      <span className="text-sm font-bold text-navy-950">
+                      <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                         {item.medicine_name ? (
-                          <span className="text-medical-800">{item.medicine_name}</span>
+                          <span className="text-primary-800 dark:text-primary-300">{item.medicine_name}</span>
                         ) : (
-                          <span className="text-navy-400 italic">Select Medicine</span>
+                          <span className="text-slate-400 dark:text-slate-500 italic">Select Medicine</span>
                         )}
                       </span>
                     </div>
@@ -387,7 +376,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveMedicine(index)}
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-8 px-2 text-xs"
+                      className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 h-8 px-2 text-xs"
                       aria-label={`Remove medicine ${index + 1}`}
                       title="Remove medicine"
                     >
@@ -400,14 +389,14 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
                     {/* 1. Medicine Searchable Field (Columns: 4 on lg) */}
                     <div className="lg:col-span-4 relative space-y-1">
-                      <label className="block text-xs font-semibold text-navy-700">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Medicine <span className="text-rose-500">*</span>
                       </label>
 
                       {item.medicine_name && !isSearchOpen ? (
-                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-medical-200 bg-medical-50/50 text-xs text-navy-900">
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-primary-200 dark:border-primary-800/80 bg-primary-50/50 dark:bg-primary-950/40 text-xs text-slate-900 dark:text-slate-100">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Pill className="w-4 h-4 text-medical-600 shrink-0" />
+                            <Pill className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />
                             <span className="font-bold truncate">{item.medicine_name}</span>
                           </div>
                           <button
@@ -422,7 +411,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 searchInputRefs.current[index]?.focus();
                               }, 50);
                             }}
-                            className="text-xs text-medical-700 hover:text-medical-800 font-semibold underline shrink-0 ml-2"
+                            className="text-xs text-primary-700 dark:text-primary-300 hover:text-primary-800 dark:hover:text-primary-200 font-semibold underline shrink-0 ml-2"
                           >
                             Change
                           </button>
@@ -451,13 +440,13 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 }
                               }}
                               placeholder="Search medicine (e.g. Gabapentin)..."
-                              className={`w-full rounded-lg border pl-8 pr-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none transition-colors ${
+                              className={`w-full rounded-lg border pl-8 pr-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden transition-colors bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${
                                 rowErrorMedicine
-                                  ? 'border-rose-400 bg-rose-50/30'
-                                  : 'border-navy-200 hover:border-navy-300'
+                                  ? 'border-rose-400 bg-rose-50/30 dark:bg-rose-950/20'
+                                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                               }`}
                             />
-                            <Search className="w-4 h-4 text-navy-400 absolute left-2.5 top-2.5" />
+                            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-2.5 top-2.5" />
                           </div>
 
                           {/* Search Dropdown */}
@@ -466,11 +455,11 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                               ref={(el) => {
                                 searchDropdownRefs.current[index] = el;
                               }}
-                              className="absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-navy-200 bg-white shadow-xl text-xs py-1"
+                              className="absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl text-xs py-1"
                             >
                               {filteredMedicines.length > 0 ? (
                                 <>
-                                  <div className="px-3 py-1.5 text-[11px] font-semibold text-navy-400 uppercase tracking-wider bg-navy-50/60 border-b border-navy-100">
+                                  <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50/60 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700">
                                     Available Medicines
                                   </div>
                                   {filteredMedicines.map((med) => (
@@ -478,41 +467,51 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                       key={med.id}
                                       type="button"
                                       onClick={() => handleSelectMedicine(index, med)}
-                                      className="w-full text-left px-3 py-2 hover:bg-medical-50 flex items-center justify-between border-b border-navy-50 last:border-0 transition-colors"
+                                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between gap-2 border-b border-slate-50 dark:border-slate-700/50 last:border-0"
                                     >
-                                      <div>
-                                        <div className="font-semibold text-navy-900">
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                                           {med.name}
-                                        </div>
-                                        {(med.generic_name || med.strength || med.form) && (
-                                          <div className="text-[11px] text-navy-500">
-                                            {med.generic_name && <span>{med.generic_name} • </span>}
-                                            {med.strength && <span>{med.strength} • </span>}
-                                            <span>{med.form}</span>
-                                          </div>
+                                        </p>
+                                        {med.generic_name && (
+                                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                            {med.generic_name}
+                                          </p>
                                         )}
                                       </div>
-                                      {item.medicine_id === med.id && (
-                                        <Check className="w-4 h-4 text-medical-600" />
-                                      )}
+                                      <span className="text-[10px] text-slate-400 shrink-0">
+                                        {med.form || 'Tablet'}
+                                      </span>
                                     </button>
                                   ))}
                                 </>
+                              ) : masterMedicines.length === 0 ? (
+                                <div className="p-4 text-center space-y-2">
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    No medicines available.
+                                  </p>
+                                  <a
+                                    href="/admin/master-data?category=medicines"
+                                    className="inline-flex items-center text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline px-2.5 py-1 rounded-md bg-primary-50 dark:bg-primary-950/50 border border-primary-200 dark:border-primary-800"
+                                  >
+                                    Manage Medicines
+                                  </a>
+                                </div>
                               ) : (
-                                <div className="p-3 text-center text-navy-500">
+                                <div className="p-3 text-center text-slate-500 dark:text-slate-400">
                                   No medicine found for "{currentQuery}".
                                 </div>
                               )}
 
                               {/* Manual Add Medicine Option */}
                               {currentQuery.trim() && !hasExactMatch && (
-                                <div className="p-2 border-t border-navy-100 bg-medical-50/40">
+                                <div className="p-2 border-t border-slate-100 dark:border-slate-700 bg-primary-50/40 dark:bg-primary-950/30">
                                   <button
                                     type="button"
                                     onClick={() =>
                                       handleCreateCustomMedicine(index, currentQuery)
                                     }
-                                    className="w-full py-1.5 px-3 rounded-lg bg-medical-600 hover:bg-medical-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                                    className="w-full py-1.5 px-3 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                                   >
                                     <Plus className="w-3.5 h-3.5" />
                                     <span>+ Add "{currentQuery.trim()}" to Master Data</span>
@@ -525,7 +524,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                       )}
 
                       {rowErrorMedicine && (
-                        <p className="text-[11px] text-rose-600 flex items-center gap-1 mt-0.5">
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-0.5">
                           <AlertCircle className="w-3 h-3" />
                           {rowErrorMedicine}
                         </p>
@@ -534,7 +533,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
 
                     {/* 2. Frequency with Urdu Options (Columns: 3 on lg) */}
                     <div className="lg:col-span-3 space-y-1">
-                      <label className="block text-xs font-semibold text-navy-700">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Frequency (تعدد) <span className="text-rose-500">*</span>
                       </label>
 
@@ -548,7 +547,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 handleUpdateItem(index, { frequency_name: e.target.value })
                               }
                               placeholder="Enter custom frequency..."
-                              className="w-full rounded-lg border border-navy-200 px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none"
+                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             />
                             <button
                               type="button"
@@ -556,7 +555,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 setCustomFrequencyModes((prev) => ({ ...prev, [index]: false }));
                                 handleUpdateItem(index, { frequency_name: 'صبح و شام' });
                               }}
-                              className="text-[11px] text-navy-500 hover:text-navy-700 underline px-1 shrink-0"
+                              className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline px-1 shrink-0"
                               title="Back to standard frequency list"
                             >
                               Standard
@@ -575,10 +574,10 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                               handleUpdateItem(index, { frequency_name: val });
                             }
                           }}
-                          className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none bg-white font-medium ${
+                          className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium ${
                             rowErrorFrequency
-                              ? 'border-rose-400 bg-rose-50/30'
-                              : 'border-navy-200 hover:border-navy-300'
+                              ? 'border-rose-400 bg-rose-50/30 dark:bg-rose-950/20'
+                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
                         >
                           <optgroup label="Urdu Frequencies (اردو)">
@@ -602,7 +601,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                       )}
 
                       {rowErrorFrequency && (
-                        <p className="text-[11px] text-rose-600 flex items-center gap-1 mt-0.5">
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-0.5">
                           <AlertCircle className="w-3 h-3" />
                           {rowErrorFrequency}
                         </p>
@@ -611,7 +610,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
 
                     {/* 3. Dosage (Columns: 2 on lg) */}
                     <div className="lg:col-span-2 space-y-1">
-                      <label className="block text-xs font-semibold text-navy-700">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Dosage (مقدار خوراک) <span className="text-rose-500">*</span>
                       </label>
 
@@ -625,7 +624,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 handleUpdateItem(index, { dosage: e.target.value })
                               }
                               placeholder="e.g. 250 mg"
-                              className="w-full rounded-lg border border-navy-200 px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none"
+                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             />
                             <button
                               type="button"
@@ -633,7 +632,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 setCustomDosageModes((prev) => ({ ...prev, [index]: false }));
                                 handleUpdateItem(index, { dosage: '1 tablet' });
                               }}
-                              className="text-[11px] text-navy-500 hover:text-navy-700 underline px-1 shrink-0"
+                              className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline px-1 shrink-0"
                               title="Back to standard dosages"
                             >
                               Standard
@@ -652,10 +651,10 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                               handleUpdateItem(index, { dosage: val });
                             }
                           }}
-                          className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none bg-white font-medium ${
+                          className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium ${
                             rowErrorDosage
-                              ? 'border-rose-400 bg-rose-50/30'
-                              : 'border-navy-200 hover:border-navy-300'
+                              ? 'border-rose-400 bg-rose-50/30 dark:bg-rose-950/20'
+                              : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
                         >
                           <optgroup label="Standard Dosages">
@@ -679,7 +678,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                       )}
 
                       {rowErrorDosage && (
-                        <p className="text-[11px] text-rose-600 flex items-center gap-1 mt-0.5">
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-0.5">
                           <AlertCircle className="w-3 h-3" />
                           {rowErrorDosage}
                         </p>
@@ -688,7 +687,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
 
                     {/* 4. Duration (Columns: 3 on lg) */}
                     <div className="lg:col-span-3 space-y-1">
-                      <label className="block text-xs font-semibold text-navy-700">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Duration (مدت) <span className="text-rose-500">*</span>
                       </label>
 
@@ -705,14 +704,14 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                                 duration_days: isNaN(val) ? 0 : val,
                               });
                             }}
-                            className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none ${
+                            className={`w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 ${
                               rowErrorDuration
-                                ? 'border-rose-400 bg-rose-50/30'
-                                : 'border-navy-200 hover:border-navy-300'
+                                ? 'border-rose-400 bg-rose-50/30 dark:bg-rose-950/20'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                             }`}
                           />
                         </div>
-                        <span className="text-xs text-navy-500 font-semibold shrink-0">days</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold shrink-0">days</span>
                       </div>
 
                       {/* Quick Duration Preset Pills */}
@@ -724,8 +723,8 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                             onClick={() => handleUpdateItem(index, { duration_days: d })}
                             className={`px-1.5 py-0.5 text-[10px] font-semibold rounded transition-colors ${
                               item.duration_days === d
-                                ? 'bg-medical-600 text-white shadow-xs'
-                                : 'bg-navy-100/80 text-navy-700 hover:bg-navy-200'
+                                ? 'bg-primary-600 text-white shadow-xs'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                           >
                             {d}d
@@ -734,7 +733,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                       </div>
 
                       {rowErrorDuration && (
-                        <p className="text-[11px] text-rose-600 flex items-center gap-1 mt-0.5">
+                        <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-0.5">
                           <AlertCircle className="w-3 h-3" />
                           {rowErrorDuration}
                         </p>
@@ -742,86 +741,111 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
                     </div>
 
                     {/* 5. Instructions (Urdu / Doctor Notes) (Full width across 12 cols) */}
-                    <div className="lg:col-span-12 space-y-1 pt-1 border-t border-navy-50">
+                    <div className="lg:col-span-12 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-semibold text-navy-700">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                           Instructions (ہدایات)
                         </label>
                         {!isCustomInstruction && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setCustomInstructionModes((prev) => ({ ...prev, [index]: true }))
-                            }
-                            className="text-[11px] text-medical-700 hover:text-medical-800 underline font-semibold"
+                            onClick={() => {
+                              setCustomInstructionModes((prev) => ({ ...prev, [index]: true }));
+                              handleUpdateItem(index, { instruction_name: '' });
+                            }}
+                            className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline"
                           >
-                            + Custom note / instructions
+                            + Custom Instruction
                           </button>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <select
-                          value={item.instruction_name || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '__custom__') {
-                              setCustomInstructionModes((prev) => ({ ...prev, [index]: true }));
-                            } else {
-                              handleUpdateItem(index, { instruction_name: val });
-                            }
-                          }}
-                          className="w-full rounded-lg border border-navy-200 hover:border-navy-300 px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none bg-white font-medium"
-                        >
-                          <option value="">No special instruction (اختیاری)</option>
-                          <optgroup label="Urdu Instructions (اردو ہدایات)">
-                            {STANDARD_INSTRUCTIONS.map((ins) => (
-                              <option key={ins.value} value={ins.value}>
-                                {ins.urdu} ({ins.english})
-                              </option>
-                            ))}
-                          </optgroup>
-                          {masterInstructions.length > 0 && (
-                            <optgroup label="Master Data Instructions">
-                              {masterInstructions.map((ins) => (
-                                <option key={ins.id} value={ins.urdu_label || ins.name}>
-                                  {ins.urdu_label ? `${ins.urdu_label} (${ins.name})` : ins.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                          <option value="__custom__">+ Custom Instruction...</option>
-                        </select>
-
-                        {(isCustomInstruction || item.custom_instruction) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {isCustomInstruction ? (
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
-                              value={item.custom_instruction || ''}
+                              value={item.instruction_name ?? ''}
                               onChange={(e) =>
-                                handleUpdateItem(index, { custom_instruction: e.target.value })
+                                handleUpdateItem(index, { instruction_name: e.target.value })
                               }
-                              placeholder="Additional instructions / خصوصی ہدایات..."
-                              className="w-full rounded-lg border border-navy-200 px-3 py-2 text-xs focus:ring-2 focus:ring-medical-500 focus:outline-none"
+                              placeholder="Enter custom instruction..."
+                              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             />
-                            {isCustomInstruction && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomInstructionModes((prev) => ({
-                                    ...prev,
-                                    [index]: false,
-                                  }));
-                                  handleUpdateItem(index, { custom_instruction: null });
-                                }}
-                                className="text-[11px] text-navy-400 hover:text-navy-600 px-1 shrink-0"
-                                title="Hide custom input"
-                              >
-                                Clear
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomInstructionModes((prev) => ({ ...prev, [index]: false }));
+                                handleUpdateItem(index, { instruction_name: 'کھانے کے بعد' });
+                              }}
+                              className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline px-1 shrink-0"
+                              title="Back to standard instructions"
+                            >
+                              Standard
+                            </button>
                           </div>
+                        ) : (
+                          <select
+                            value={item.instruction_name ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '__custom__') {
+                                setCustomInstructionModes((prev) => ({ ...prev, [index]: true }));
+                                handleUpdateItem(index, { instruction_name: '' });
+                              } else {
+                                handleUpdateItem(index, { instruction_name: val });
+                              }
+                            }}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                          >
+                            <option value="">— Select standard instruction —</option>
+                            <optgroup label="Urdu Instructions (ہدایات)">
+                              {STANDARD_INSTRUCTIONS.map((ins) => (
+                                <option key={ins.value} value={ins.value}>
+                                  {ins.urdu} — {ins.english}
+                                </option>
+                              ))}
+                            </optgroup>
+                            {masterInstructions.length > 0 && (
+                              <optgroup label="Master Data Instructions">
+                                {masterInstructions.map((i) => (
+                                  <option key={i.id} value={i.urdu_label || i.name}>
+                                    {i.urdu_label ? `${i.urdu_label} (${i.name})` : i.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                            <option value="__custom__">+ Custom Instruction...</option>
+                          </select>
                         )}
+
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={item.custom_instruction || ''}
+                            onChange={(e) =>
+                              handleUpdateItem(index, { custom_instruction: e.target.value })
+                            }
+                            placeholder="Additional instructions / خصوصی ہدایات..."
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 focus:outline-hidden bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                          />
+                          {isCustomInstruction && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomInstructionModes((prev) => ({
+                                  ...prev,
+                                  [index]: false,
+                                }));
+                                handleUpdateItem(index, { custom_instruction: null });
+                              }}
+                              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 px-1 shrink-0"
+                              title="Hide custom input"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -839,8 +863,8 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
               variant="outline"
               size="sm"
               onClick={handleAddMedicine}
-              leftIcon={<Plus className="w-4 h-4 text-medical-600" />}
-              className="border-medical-300 text-medical-700 hover:bg-medical-50 font-semibold"
+              leftIcon={<Plus className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+              className="border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-950/40 font-semibold text-xs"
             >
               + Add Another Medicine
             </Button>
@@ -849,52 +873,52 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
 
         {/* On-Screen Clinical Prescription Preview */}
         {prescriptions.length > 0 && (
-          <div className="mt-6 rounded-xl border border-medical-200 bg-gradient-to-br from-medical-50/40 via-white to-navy-50/30 p-4 sm:p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-medical-100 pb-2">
+          <div className="mt-6 rounded-xl border border-primary-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-medical-700" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-navy-900">
+                <FileText className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                   Prescription Summary Preview
                 </h4>
               </div>
-              <span className="text-[11px] text-navy-500 font-medium">
-                On-screen summary • PDF printing in Phase 8
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                On-screen summary • Official PDF available upon saving
               </span>
             </div>
 
-            <ol className="divide-y divide-navy-100 text-xs text-navy-800 space-y-2">
+            <ol className="divide-y divide-slate-200/70 dark:divide-slate-700/60 text-xs text-slate-800 dark:text-slate-200 space-y-2">
               {prescriptions.map((item, idx) => (
                 <li key={idx} className="pt-2 first:pt-0 flex flex-wrap items-start justify-between gap-2">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-navy-950 font-mono">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
                         {idx + 1}. {item.medicine_name || '(Unnamed Medicine)'}
                       </span>
-                      <span className="font-medium px-2 py-0.5 rounded bg-white border border-navy-200 text-navy-700 text-[11px]">
+                      <span className="font-medium px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px]">
                         {item.dosage || '1 tablet'}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-navy-600">
-                      <span className="font-semibold text-medical-800" dir="rtl">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                      <span className="font-semibold text-primary-700 dark:text-primary-400" dir="rtl">
                         تعدد: {item.frequency_name || 'صبح و شام'}
                       </span>
-                      <span className="text-navy-300">•</span>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
                       <span>
-                        مدت: <strong className="text-navy-900">{item.duration_days || 7} days</strong>
+                        مدت: <strong className="text-slate-900 dark:text-slate-100">{item.duration_days || 7} days</strong>
                       </span>
                       {item.instruction_name && (
                         <>
-                          <span className="text-navy-300">•</span>
-                          <span className="text-navy-700" dir="rtl">
+                          <span className="text-slate-300 dark:text-slate-600">•</span>
+                          <span className="text-slate-700 dark:text-slate-300" dir="rtl">
                             ہدایت: {item.instruction_name}
                           </span>
                         </>
                       )}
                       {item.custom_instruction && (
                         <>
-                          <span className="text-navy-300">•</span>
-                          <span className="italic text-navy-600">
+                          <span className="text-slate-300 dark:text-slate-600">•</span>
+                          <span className="italic text-slate-600 dark:text-slate-400">
                             "{item.custom_instruction}"
                           </span>
                         </>
@@ -907,6 +931,7 @@ export const PrescriptionSection: React.FC<PrescriptionSectionProps> = ({
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 };

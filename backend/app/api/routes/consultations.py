@@ -118,6 +118,7 @@ def get_consultations(
 @router.get("/{consultation_id}", response_model=ConsultationResponse)
 def get_consultation_detail(
     consultation_id: str,
+    patient_id: Optional[str] = Query(None, description="Optional patient ID verification"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -131,6 +132,14 @@ def get_consultation_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Consultation '{consultation_id}' not found."
         )
+    if patient_id:
+        from app.services.consultation_service import resolve_patient
+        p = resolve_patient(db, patient_id)
+        if not p or consultation.patient_id != p.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Consultation '{consultation_id}' does not belong to patient '{patient_id}'."
+            )
     return ConsultationResponse.model_validate(consultation)
 
 

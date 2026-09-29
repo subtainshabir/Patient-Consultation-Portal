@@ -117,16 +117,15 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 2: Initialize Database and Seed Users
+### Step 2: Initialize Database & Master Data
 
 ```bash
 python init_db.py
 ```
 
-This creates initial accounts:
-* **Doctor**: `drrauf` / `doctor@neurology.pk` (Password: `Doctor@123`) — Role: `DOCTOR`
-* **Admin**: `admin` / `admin@neurology.pk` (Password: `Admin@123`) — Role: `ADMIN`
-* **Staff**: `staff` / `staff@neurology.pk` (Password: `Staff@123`) — Role: `STAFF`
+This initializes the database schema and seeds clinical master data (symptoms, medicines, tests, etc.).
+No default administrator credentials exist by default. Upon first launching the application, you will be prompted to create the initial administrator account via the setup screen (`/setup`).
+
 
 ### Step 3: Run Database Migrations (Alembic)
 

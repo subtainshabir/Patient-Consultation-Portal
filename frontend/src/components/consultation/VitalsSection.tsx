@@ -58,22 +58,22 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({
   const autoBmi = calculateBmi(vitals.weight_kg, vitals.height_cm);
 
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
+    <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900">
+      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">Vital Signs</CardTitle>
-            <p className="text-xs text-navy-500">Record baseline physiological measurements</p>
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">Vital Signs</CardTitle>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Record baseline physiological measurements</p>
           </div>
         </div>
 
         {/* Familiar BP live indicator */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-medical-50 border border-medical-200">
-          <span className="text-[11px] font-semibold text-medical-800">Blood Pressure:</span>
-          <span className="text-xs font-mono font-bold text-medical-950">{bpRepresentation}</span>
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800/60">
+          <span className="text-[11px] font-semibold text-primary-800 dark:text-primary-300">Blood Pressure:</span>
+          <span className="text-xs font-mono font-bold text-primary-950 dark:text-primary-200">{bpRepresentation}</span>
         </div>
       </CardHeader>
 
@@ -210,19 +210,19 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({
         )}
 
         {/* Extensible Additional Vitals (Section 12) */}
-        <div className="pt-2 border-t border-navy-100">
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
             onClick={() => setShowExtendedVitals((prev) => !prev)}
-            className="flex items-center gap-2 text-xs font-semibold text-navy-600 hover:text-medical-700 transition-colors"
+            className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
           >
-            <Scale className="w-3.5 h-3.5 text-medical-600" />
+            <Scale className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
             <span>{showExtendedVitals ? 'Hide Additional Vitals' : '+ Add Additional Vitals (Respiratory, Weight, BMI, Glucose)'}</span>
             {showExtendedVitals ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
           {showExtendedVitals && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 pt-3 border-t border-navy-100/70 animate-in fade-in duration-150">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-150">
               <Input
                 label="Respiratory Rate"
                 id="respiratory_rate"
@@ -230,7 +230,7 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({
                 placeholder="e.g. 16"
                 value={vitals.respiratory_rate ?? ''}
                 onChange={(e) => handleNumberInput('respiratory_rate', e.target.value)}
-                rightElement={<span className="text-xs text-navy-400 font-medium">/min</span>}
+                rightElement={<span className="text-xs text-slate-400 font-medium">/min</span>}
                 min={5}
                 max={80}
               />
@@ -243,7 +243,7 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({
                 placeholder="e.g. 70.5"
                 value={vitals.weight_kg ?? ''}
                 onChange={(e) => handleNumberInput('weight_kg', e.target.value, true)}
-                rightElement={<span className="text-xs text-navy-400 font-medium">kg</span>}
+                rightElement={<span className="text-xs text-slate-400 font-medium">kg</span>}
                 min={1}
                 max={500}
               />
@@ -255,16 +255,16 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({
                 placeholder="e.g. 172"
                 value={vitals.height_cm ?? ''}
                 onChange={(e) => handleNumberInput('height_cm', e.target.value, true)}
-                rightElement={<span className="text-xs text-navy-400 font-medium">cm</span>}
+                rightElement={<span className="text-xs text-slate-400 font-medium">cm</span>}
                 min={20}
                 max={250}
               />
 
               <div>
-                <label className="block text-xs font-semibold text-navy-800 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   BMI (Body Mass Index)
                 </label>
-                <div className="h-10 px-3.5 flex items-center justify-between rounded-xl bg-navy-50 border border-navy-200 text-xs font-mono font-medium text-navy-900">
+                <div className="h-10 px-3.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-medium text-slate-900 dark:text-slate-100">
                   <span>{autoBmi !== null ? `${autoBmi} kg/m²` : 'Auto-calculated'}</span>
                 </div>
               </div>

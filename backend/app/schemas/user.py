@@ -30,3 +30,26 @@ class UserResponse(UserBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminCreateUserRequest(BaseModel):
+    username: str
+    password: str
+    role: UserRole
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
+class AdminUpdateUserRequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None
+
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str
+
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+

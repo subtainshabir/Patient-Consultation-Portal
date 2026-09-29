@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
@@ -91,7 +92,8 @@ def create_consultation(
         )
 
     now = datetime.now(timezone.utc)
-    consultation_unique_id = generate_consultation_id(db, now)
+    consult_dt = getattr(consultation_in, "consultation_date", None) or now
+    consultation_unique_id = generate_consultation_id(db, consult_dt)
 
     # Validate / resolve patient state
     resolved_state_name = consultation_in.patient_state_name
@@ -123,7 +125,7 @@ def create_consultation(
             consultation_id=consultation_unique_id,
             patient_id=patient.id,
             doctor_id=doctor_id,
-            consultation_date=now,
+            consultation_date=consult_dt,
             patient_state_id=consultation_in.patient_state_id,
             patient_state_name=resolved_state_name,
             symptom_notes=consultation_in.symptom_notes.strip() if consultation_in.symptom_notes else None,
@@ -348,6 +350,14 @@ def update_consultation(
             detail=f"Consultation '{consultation_identifier}' not found."
         )
 
+    if consultation_in.patient_id:
+        patient = resolve_patient(db, consultation_in.patient_id)
+        if not patient or patient.id != consultation.patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Consultation belongs to patient ID {consultation.patient_id}. Cannot reassign to patient '{consultation_in.patient_id}'."
+            )
+
     now = datetime.now(timezone.utc)
 
     # Validate / resolve patient state
@@ -359,6 +369,8 @@ def update_consultation(
 
     try:
         # 1. Update main consultation fields
+        if getattr(consultation_in, "consultation_date", None):
+            consultation.consultation_date = consultation_in.consultation_date
         consultation.patient_state_id = consultation_in.patient_state_id
         consultation.patient_state_name = resolved_state_name
         consultation.symptom_notes = consultation_in.symptom_notes.strip() if consultation_in.symptom_notes else None
@@ -584,6 +596,25 @@ def update_consultation(
                 )
                 db.add(db_prescription)
 
+        # Refresh any existing generated PDF report so changes reflect immediately
+        from app.models.consultation import ConsultationReport
+        from app.models.settings import ClinicSetting
+        from app.services.report_service import compile_prescription_pdf
+
+        latest_rpt = (
+            db.query(ConsultationReport)
+            .filter(ConsultationReport.consultation_id == consultation.id, ConsultationReport.is_latest == True)
+            .first()
+        )
+        if latest_rpt and os.path.exists(latest_rpt.storage_path):
+            try:
+                clinic_cfg = db.query(ClinicSetting).first()
+                new_size = compile_prescription_pdf(consultation, latest_rpt.storage_path, clinic_cfg=clinic_cfg)
+                latest_rpt.file_size = new_size
+                latest_rpt.updated_at = now
+            except Exception:
+                pass
+
         db.commit()
         db.refresh(consultation)
         return consultation
@@ -718,12 +749,28 @@ def build_consultation_summary(
     temp = None
     has_vitals = False
 
-    if consultation.vitals:
+    v = consultation.vitals
+    if v and any([
+        v.systolic_bp is not None,
+        v.diastolic_bp is not None,
+        v.pulse_rate is not None,
+        v.temperature is not None,
+        v.oxygen_saturation is not None,
+        v.nihss_score is not None,
+        v.fall_risk_status is not None,
+        v.respiratory_rate is not None,
+        v.weight_kg is not None,
+        v.blood_glucose is not None,
+    ]):
         has_vitals = True
-        pulse = consultation.vitals.pulse_rate
-        temp = consultation.vitals.temperature
-        if consultation.vitals.systolic_bp is not None and consultation.vitals.diastolic_bp is not None:
-            bp_formatted = f"{consultation.vitals.systolic_bp} / {consultation.vitals.diastolic_bp} mmHg"
+        pulse = v.pulse_rate
+        temp = v.temperature
+        if v.systolic_bp is not None and v.diastolic_bp is not None:
+            bp_formatted = f"{v.systolic_bp} / {v.diastolic_bp} mmHg"
+        elif v.systolic_bp is not None:
+            bp_formatted = f"{v.systolic_bp} / — mmHg"
+        elif v.diastolic_bp is not None:
+            bp_formatted = f"— / {v.diastolic_bp} mmHg"
 
     now_date = datetime.now(timezone.utc).date()
     f_status = consultation.follow_up_status or "No Follow-Up"

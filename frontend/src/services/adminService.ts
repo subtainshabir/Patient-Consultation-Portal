@@ -9,6 +9,8 @@ import type {
   ClinicSetting,
   ClinicSettingUpdate,
 } from '../types/admin';
+import type { User, UserRole } from '../types/user';
+
 
 export const adminService = {
   // ─── Dashboard Statistics ───
@@ -107,4 +109,64 @@ export const adminService = {
     const blob = await api.getBlob('/admin/settings/logo');
     return URL.createObjectURL(blob);
   },
+
+  // ─── User Management (Phase 9.1) ───
+  async getUsers(params?: {
+    search?: string;
+    role?: string;
+    is_active?: boolean;
+  }): Promise<User[]> {
+    const query = new URLSearchParams();
+    if (params?.search && params.search.trim()) {
+      query.append('search', params.search.trim());
+    }
+    if (params?.role && params.role !== 'all') {
+      query.append('role', params.role);
+    }
+    if (params?.is_active !== undefined && params.is_active !== null) {
+      query.append('is_active', params.is_active.toString());
+    }
+    const qStr = query.toString();
+    return api.get<User[]>(qStr ? `/admin/users?${qStr}` : '/admin/users');
+  },
+
+  async createUser(data: {
+    username: string;
+    password: string;
+    role: UserRole;
+    full_name?: string;
+    email?: string;
+  }): Promise<User> {
+    return api.post<User>('/admin/users', data);
+  },
+
+  async updateUser(
+    id: number,
+    data: {
+      full_name?: string;
+      email?: string;
+      role?: UserRole;
+    }
+  ): Promise<User> {
+    return api.put<User>(`/admin/users/${id}`, data);
+  },
+
+  async toggleUserStatus(id: number, isActive: boolean): Promise<User> {
+    return api.patch<User>(`/admin/users/${id}/status`, {
+      is_active: isActive,
+    });
+  },
+
+  async resetUserPassword(
+    id: number,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    return api.post<{ success: boolean; message: string }>(
+      `/admin/users/${id}/reset-password`,
+      {
+        new_password: newPassword,
+      }
+    );
+  },
 };
+

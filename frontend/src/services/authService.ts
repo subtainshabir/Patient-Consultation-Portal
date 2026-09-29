@@ -27,5 +27,19 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!tokenStorage.get();
-  }
+  },
+
+  async getSetupStatus(): Promise<{ setup_required: boolean; message: string }> {
+    return api.get<{ setup_required: boolean; message: string }>('/auth/setup-status');
+  },
+
+  async setupAdmin(data: {
+    username: string;
+    password: string;
+    full_name?: string;
+    email?: string;
+  }): Promise<User> {
+    return api.post<User>('/auth/setup-admin', data);
+  },
 };
+

@@ -12,21 +12,21 @@ export const ClinicalAssessmentSection: React.FC<ClinicalAssessmentSectionProps>
   onChange,
 }) => {
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+    <Card className="border-slate-200/90 dark:border-slate-800 shadow-2xs">
+      <CardHeader className="pb-3.5 border-b border-slate-100 dark:border-slate-800/80 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-800/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <ClipboardCheck className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">Clinical Assessment</CardTitle>
-            <p className="text-xs text-navy-500">Overall clinical diagnostic impression and medical synthesis</p>
+            <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">Clinical Assessment</CardTitle>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Overall clinical diagnostic impression and medical synthesis</p>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-5 space-y-2">
-        <label htmlFor="clinical-assessment-text" className="block text-xs font-semibold text-navy-800">
+        <label htmlFor="clinical-assessment-text" className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
           Doctor's Assessment & Clinical Impression
         </label>
         <textarea
@@ -35,9 +35,9 @@ export const ClinicalAssessmentSection: React.FC<ClinicalAssessmentSectionProps>
           placeholder="Enter overall clinical assessment, provisional/differential diagnoses, disease stage, and clinical reasoning..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3.5 py-2.5 text-xs text-navy-900 bg-white border border-navy-200 rounded-xl placeholder:text-navy-400 focus:outline-hidden focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors leading-relaxed"
+          className="w-full px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors leading-relaxed"
         />
-        <div className="flex items-center justify-between text-[11px] text-navy-400">
+        <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
           <span>Clinical documentation field for physician</span>
           <span>{value ? `${value.length} characters` : 'Optional'}</span>
         </div>

@@ -20,20 +20,20 @@ export const PatientStateSection: React.FC<PatientStateSectionProps> = ({
   };
 
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+    <Card className="border-slate-200/90 dark:border-slate-800 shadow-2xs">
+      <CardHeader className="pb-3.5 border-b border-slate-100 dark:border-slate-800/80 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-800/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <HeartPulse className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">Patient Clinical State</CardTitle>
-            <p className="text-xs text-navy-500">Overall clinical assessment state for this consultation</p>
+            <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">Patient Clinical State</CardTitle>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Overall clinical assessment state for this consultation</p>
           </div>
         </div>
 
         {selectedStateName && (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 border border-medical-200 text-medical-800">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300">
             {selectedStateName}
           </span>
         )}

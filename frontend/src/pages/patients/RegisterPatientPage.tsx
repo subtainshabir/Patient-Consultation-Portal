@@ -9,12 +9,12 @@ import {
   CreditCard,
   AlertTriangle,
   ArrowLeft,
-  ArrowRight,
   ExternalLink,
   CheckCircle2,
   Copy,
   Check,
   UserPlus,
+  Stethoscope,
 } from 'lucide-react';
 
 import { patientService } from '../../services/patientService';
@@ -258,25 +258,33 @@ export const RegisterPatientPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Success Actions (Section 31) */}
-            <div className="flex flex-col-reverse sm:flex-row items-center gap-3 w-full max-w-md">
+            {/* Success Actions (Section 31 & Phase 11) */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-lg">
               <Button
                 variant="outline"
                 size="md"
                 onClick={handleRegisterAnother}
                 leftIcon={<UserPlus className="w-4 h-4" />}
-                className="w-full sm:w-1/2"
+                className="w-full sm:w-auto"
               >
-                Register Another Patient
+                Register Another
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => navigate(`/patients/${registeredPatient.patient_id}`)}
+                className="w-full sm:w-auto"
+              >
+                Open Patient
               </Button>
               <Button
                 variant="primary"
                 size="md"
-                onClick={() => navigate(`/patients/${registeredPatient.patient_id}`)}
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-                className="w-full sm:w-1/2 font-semibold shadow-sm"
+                onClick={() => navigate(`/patients/${registeredPatient.patient_id}/consultation/new`)}
+                leftIcon={<Stethoscope className="w-4 h-4" />}
+                className="w-full sm:w-auto font-semibold shadow-sm"
               >
-                Open Patient Profile
+                + New Consultation
               </Button>
             </div>
           </CardContent>
@@ -289,7 +297,7 @@ export const RegisterPatientPage: React.FC = () => {
             {/* Full Name */}
             <div>
               <Input
-                label="Full Name"
+                label="Full Name (Required)"
                 id="full_name"
                 placeholder="e.g. Muhammad Tariq"
                 required
@@ -303,7 +311,7 @@ export const RegisterPatientPage: React.FC = () => {
             {/* Age & Gender (Responsive 2-col layout) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Input
-                label="Age (Years)"
+                label="Age in Years (Required)"
                 id="age"
                 type="number"
                 placeholder="e.g. 48"
@@ -316,7 +324,7 @@ export const RegisterPatientPage: React.FC = () => {
               />
 
               <Select
-                label="Gender"
+                label="Gender (Required)"
                 id="gender"
                 options={GENDER_OPTIONS}
                 required
@@ -329,7 +337,7 @@ export const RegisterPatientPage: React.FC = () => {
             {/* Mobile Number & CNIC */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Input
-                label="Mobile Number"
+                label="Mobile Number (Required)"
                 id="mobile_number"
                 type="tel"
                 placeholder="e.g. 0300-1234567"
@@ -341,12 +349,12 @@ export const RegisterPatientPage: React.FC = () => {
               />
 
               <Input
-                label="CNIC (National ID Card)"
+                label="CNIC (National ID Card) — Optional"
                 id="cnic"
                 placeholder="e.g. 37405-1234567-1"
                 leftElement={<CreditCard className="w-4 h-4" />}
                 error={errors.cnic?.message}
-                helperText="Optional 13-digit Pakistani CNIC."
+                helperText="Optional 13-digit Pakistani CNIC (XXXXX-XXXXXXX-X)."
                 {...register('cnic')}
               />
             </div>

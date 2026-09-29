@@ -156,6 +156,7 @@ export interface ConsultationSummary {
 
 export interface ConsultationCreatePayload {
   patient_id: string;
+  consultation_date?: string | null;
   patient_state_id?: number | null;
   patient_state_name?: string | null;
   symptom_notes?: string | null;
@@ -181,5 +182,13 @@ export interface ServerDateResponse {
   server_date: string;
   formatted_date: string;
   iso_timestamp: string;
+}
+
+export interface ConsultationListResponse {
+  items: ConsultationSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 

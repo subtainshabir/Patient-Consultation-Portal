@@ -7,13 +7,12 @@ import {
   XCircle,
   ChevronsDownUp,
   ChevronsUpDown,
-  Eye,
-  Activity,
   Zap,
-  Move,
+  Activity,
   Compass,
+  Move,
   Smile,
-  ShieldAlert,
+  Eye,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -30,60 +29,49 @@ export interface NeurologicalExamSectionProps {
 }
 
 export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = ({
-
   examinations,
   onChangeExaminations,
   powerText,
   onChangePowerText,
 }) => {
-  // Collapsible panels state: default motor open
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+  const [isSectionOpen, setIsSectionOpen] = useState(true);
+
+  // 6 Structured Groups (Section 10)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     motor: true,
-    reflexes: false,
+    reflexes: true,
     cranial: false,
+    coordination_gait: false,
     sensory: false,
-    coordination: false,
-    gait: false,
-    mental: false,
-    special: false,
-    eye: false,
-    other: false,
+    mental_higher: false,
   });
 
-  const toggleSection = (sectionKey: string) => {
-    setOpenSections((prev) => ({
+  const toggleGroup = (groupKey: string) => {
+    setOpenGroups((prev) => ({
       ...prev,
-      [sectionKey]: !prev[sectionKey],
+      [groupKey]: !prev[groupKey],
     }));
   };
 
   const expandAll = () => {
-    setOpenSections({
+    setOpenGroups({
       motor: true,
       reflexes: true,
       cranial: true,
+      coordination_gait: true,
       sensory: true,
-      coordination: true,
-      gait: true,
-      mental: true,
-      special: true,
-      eye: true,
-      other: true,
+      mental_higher: true,
     });
   };
 
   const collapseAll = () => {
-    setOpenSections({
+    setOpenGroups({
       motor: false,
       reflexes: false,
       cranial: false,
+      coordination_gait: false,
       sensory: false,
-      coordination: false,
-      gait: false,
-      mental: false,
-      special: false,
-      eye: false,
-      other: false,
+      mental_higher: false,
     });
   };
 
@@ -135,7 +123,7 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
     }
   };
 
-  // Predefined MRC muscle strength grades (Section 22)
+  // Predefined MRC muscle strength grades
   const strengthGrades = [
     { value: '5/5', label: '5/5 — Normal power' },
     { value: '4/5', label: '4/5 — Active movement against resistance' },
@@ -162,14 +150,14 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
     const isDone = current.status === 'Done';
 
     return (
-      <div className="p-3.5 rounded-xl border border-navy-100 bg-white hover:border-navy-200 transition-colors space-y-2.5">
+      <div className="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:border-slate-300 dark:hover:border-slate-700 transition-colors space-y-2.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="font-semibold text-xs text-navy-900 flex items-center gap-1.5">
+          <div className="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
             <span>{label}</span>
           </div>
 
-          {/* Assessment Status Toggle (Section 44) */}
-          <div className="flex items-center gap-1 self-start sm:self-auto bg-navy-50 p-0.5 rounded-lg border border-navy-200/70">
+          {/* Assessment Status Toggle */}
+          <div className="flex items-center gap-1 self-start sm:self-auto bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => updateItem(category, itemName, { status: 'Done' })}
@@ -177,7 +165,7 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
                 'px-2 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1',
                 isDone
                   ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-navy-600 hover:text-navy-900'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               <CheckCircle2 className="w-3 h-3" />
@@ -191,8 +179,8 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
               className={cn(
                 'px-2 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1',
                 !isDone
-                  ? 'bg-navy-700 text-white shadow-xs'
-                  : 'text-navy-500 hover:text-navy-800'
+                  ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               )}
             >
               <XCircle className="w-3 h-3" />
@@ -201,7 +189,7 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
           </div>
         </div>
 
-        {/* Clinical Finding & Notes: only enabled when Done (Section 44) */}
+        {/* Clinical Finding & Notes: only enabled when Done */}
         {isDone ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
             {/* Finding Dropdown */}
@@ -243,7 +231,7 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
             </div>
           </div>
         ) : (
-          <div className="py-1 px-2 rounded-lg bg-navy-50/60 text-[11px] text-navy-400 italic">
+          <div className="py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-[11px] text-slate-400 dark:text-slate-500 italic">
             Examination marked as Not Done. No clinical finding documented.
           </div>
         )}
@@ -252,63 +240,83 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
   };
 
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+    <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900">
+      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <Brain className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">Neurological Examination</CardTitle>
-            <p className="text-xs text-navy-500">Structured examination matrix organized by clinical subsystems</p>
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
+              Neurological Examination
+            </CardTitle>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Structured clinical examination organized into 6 logical clinical systems
+            </p>
           </div>
         </div>
 
-        {/* Global Expand / Collapse All buttons */}
+        {/* Global Expand / Collapse All buttons & Section Toggle */}
         <div className="flex items-center gap-2">
+          {isSectionOpen && (
+            <>
+              <button
+                type="button"
+                onClick={expandAll}
+                className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/50 border border-primary-200/80 dark:border-primary-800/80 transition-colors"
+              >
+                <ChevronsUpDown className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Expand All</span>
+              </button>
+              <button
+                type="button"
+                onClick={collapseAll}
+                className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              >
+                <ChevronsDownUp className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Collapse All</span>
+              </button>
+            </>
+          )}
           <button
             type="button"
-            onClick={expandAll}
-            className="text-xs font-semibold text-medical-700 hover:text-medical-800 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-medical-50 border border-medical-200/60 transition-colors"
+            onClick={() => setIsSectionOpen((prev) => !prev)}
+            className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label={isSectionOpen ? "Collapse Neurological Examination" : "Expand Neurological Examination"}
           >
-            <ChevronsUpDown className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Expand All</span>
-          </button>
-          <button
-            type="button"
-            onClick={collapseAll}
-            className="text-xs font-semibold text-navy-600 hover:text-navy-800 flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-navy-100 border border-navy-200 transition-colors"
-          >
-            <ChevronsDownUp className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Collapse All</span>
+            <ChevronDown className={cn("w-5 h-5 transition-transform duration-200", isSectionOpen && "rotate-180")} />
           </button>
         </div>
       </CardHeader>
 
-      <CardContent className="p-5 space-y-4">
-        {/* ─── 1. Motor Examination ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
+      {isSectionOpen && (
+        <CardContent className="p-4 sm:p-6 space-y-4 animate-in fade-in duration-150">
+        {/* ─── GROUP 1: Motor Examination (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
           <button
             type="button"
-            onClick={() => toggleSection('motor')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
+            onClick={() => toggleGroup('motor')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
           >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Zap className="w-4 h-4 text-medical-600" />
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Zap className="w-4 h-4 text-primary-600 dark:text-primary-400" />
               <span>1. Motor Examination</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Power, Motor Functions, Tone, Strength, SLR)
+              </span>
             </div>
-            {openSections.motor ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
+            {openGroups.motor ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             )}
           </button>
 
-          {openSections.motor && (
-            <div className="p-4 pt-0 space-y-3.5 border-t border-navy-100 bg-white">
-              {/* Doctor Requested Separate Power Field (Section 45) */}
-              <div className="p-3.5 rounded-xl bg-medical-50/40 border border-medical-200 space-y-1.5">
-                <label htmlFor="doctor_power_field" className="block text-xs font-bold text-navy-900">
+          {openGroups.motor && (
+            <div className="p-4 pt-0 space-y-3.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              {/* Doctor Requested Separate Power Field */}
+              <div className="p-3.5 rounded-xl bg-primary-50/40 dark:bg-primary-950/30 border border-primary-200/80 dark:border-primary-800/60 space-y-1.5 mt-3">
+                <label htmlFor="doctor_power_field" className="block text-xs font-bold text-slate-900 dark:text-slate-100">
                   Power (Doctor Request Field)
                 </label>
                 <Input
@@ -319,160 +327,283 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
                 />
               </div>
 
-              {/* General Motor Functions (Section 20) */}
+              {/* Motor Functions */}
               {renderExamRow('Motor Examination', 'Motor Functions', 'Motor Functions', {
                 useMasterData: true,
                 masterCategory: 'Motor Functions',
                 placeholder: 'Normal, Weakness, Hemiparesis...',
               })}
 
-              {/* Muscle Tone (Section 21) */}
+              {/* Muscle Tone */}
               {renderExamRow('Motor Examination', 'Muscle Tone', 'Muscle Tone', {
                 useMasterData: true,
                 masterCategory: 'Muscle Tone',
                 placeholder: 'Normal, Hypotonia, Hypertonia, Spastic...',
               })}
 
-              {/* Structured Muscle Strength Matrix (Section 22) */}
-              <div className="pt-2">
-                <span className="block text-xs font-bold text-navy-900 mb-2">
-                  Muscle Strength Assessment (MRC Scale 0/5 – 5/5)
+              {/* Muscle Strength Assessment (MRC Scale 0/5 – 5/5) */}
+              <div className="pt-1">
+                <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  Muscle Strength (MRC Scale 0/5 – 5/5)
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {renderExamRow('Motor Examination', 'Right Upper Limb', 'Right Upper Limb', {
+                  {renderExamRow('Motor Examination', 'Right Upper Limb', 'Muscle Strength — Right Upper Limb', {
                     staticOptions: strengthGrades,
                     placeholder: 'Select grade (e.g. 5/5)...',
                   })}
-                  {renderExamRow('Motor Examination', 'Left Upper Limb', 'Left Upper Limb', {
+                  {renderExamRow('Motor Examination', 'Left Upper Limb', 'Muscle Strength — Left Upper Limb', {
                     staticOptions: strengthGrades,
                     placeholder: 'Select grade (e.g. 5/5)...',
                   })}
-                  {renderExamRow('Motor Examination', 'Right Lower Limb', 'Right Lower Limb', {
+                  {renderExamRow('Motor Examination', 'Right Lower Limb', 'Muscle Strength — Right Lower Limb', {
                     staticOptions: strengthGrades,
                     placeholder: 'Select grade (e.g. 5/5)...',
                   })}
-                  {renderExamRow('Motor Examination', 'Left Lower Limb', 'Left Lower Limb', {
+                  {renderExamRow('Motor Examination', 'Left Lower Limb', 'Muscle Strength — Left Lower Limb', {
                     staticOptions: strengthGrades,
                     placeholder: 'Select grade (e.g. 5/5)...',
                   })}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* ─── 2. Reflexes & Plantar ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('reflexes')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Activity className="w-4 h-4 text-medical-600" />
-              <span>2. Reflexes & Plantar Response</span>
-            </div>
-            {openSections.reflexes ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
+              {/* Straight Leg Raise (SLR) Left & Right (Section 10) */}
+              <div className="pt-1">
+                <span className="block text-xs font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  Straight Leg Raise (SLR)
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {renderExamRow('SLR', 'SLR - Left', 'SLR — Left Leg', {
+                    useMasterData: true,
+                    masterCategory: 'SLR',
+                    placeholder: 'Negative, Positive, Limited, Painful...',
+                  })}
+                  {renderExamRow('SLR', 'SLR - Right', 'SLR — Right Leg', {
+                    useMasterData: true,
+                    masterCategory: 'SLR',
+                    placeholder: 'Negative, Positive, Limited, Painful...',
+                  })}
+                </div>
+              </div>
 
-          {openSections.reflexes && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              {/* Deep Tendon Reflexes (Section 24) */}
-              {renderExamRow('Reflexes', 'Reflexes', 'Deep Tendon Reflexes', {
-                useMasterData: true,
-                masterCategory: 'Reflexes',
-                placeholder: 'Normal (+2), Reduced (+1), Brisk (+3)...',
-              })}
-
-              {/* Plantar Response (Section 25) */}
-              {renderExamRow('Plantar Response', 'Plantar Response', 'Plantar Response (Babinski)', {
-                useMasterData: true,
-                masterCategory: 'Plantar Response',
-                placeholder: 'Flexor (Normal), Extensor (Babinski +)...',
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ─── 3. Cranial Nerves ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('cranial')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Brain className="w-4 h-4 text-medical-600" />
-              <span>3. Cranial Nerves (CN I – CN XII)</span>
-            </div>
-            {openSections.cranial ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.cranial && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <p className="text-xs text-navy-500 mb-2">
-                Evaluate cranial nerves I through XII individually. Select finding or mark Not Done.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { num: 'I', name: 'Olfactory (Smell)' },
-                  { num: 'II', name: 'Optic (Visual Acuity & Fields)' },
-                  { num: 'III', name: 'Oculomotor (Pupil & Eye Movement)' },
-                  { num: 'IV', name: 'Trochlear (Down & In Gaze)' },
-                  { num: 'V', name: 'Trigeminal (Facial Sensation & Mastication)' },
-                  { num: 'VI', name: 'Abducens (Lateral Gaze)' },
-                  { num: 'VII', name: 'Facial (Facial Muscles & Taste)' },
-                  { num: 'VIII', name: 'Vestibulocochlear (Hearing & Balance)' },
-                  { num: 'IX', name: 'Glossopharyngeal (Palatal Sensation & Gag)' },
-                  { num: 'X', name: 'Vagus (Voice & Palate Elevation)' },
-                  { num: 'XI', name: 'Accessory (Trapezius & SCM Power)' },
-                  { num: 'XII', name: 'Hypoglossal (Tongue Protrusion)' },
-                ].map((cn) => {
-                  const itemKey = `CN ${cn.num}`;
-                  return (
-                    <div key={cn.num}>
-                      {renderExamRow('Cranial Nerves', itemKey, `CN ${cn.num} — ${cn.name}`, {
-                        useMasterData: true,
-                        masterCategory: 'Cranial Nerves',
-                        placeholder: 'Normal, Impaired, Weak...',
-                      })}
-                    </div>
-                  );
+              {/* Muscle Wasting & Abnormal Movements */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {renderExamRow('Muscle Wasting', 'Muscle Wasting', 'Muscle Wasting / Bulk', {
+                  useMasterData: true,
+                  masterCategory: 'Muscle Wasting',
+                  placeholder: 'None, Mild, Moderate, Severe, Focal...',
+                })}
+                {renderExamRow('Abnormal Movements', 'Abnormal Movements', 'Abnormal / Involuntary Movements', {
+                  useMasterData: true,
+                  masterCategory: 'Abnormal Movements',
+                  placeholder: 'None, Tremor, Chorea, Dystonia, Myoclonus...',
                 })}
               </div>
             </div>
           )}
         </div>
 
-        {/* ─── 4. Sensory Examination ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
+        {/* ─── GROUP 2: Reflexes (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
           <button
             type="button"
-            onClick={() => toggleSection('sensory')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
+            onClick={() => toggleGroup('reflexes')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
           >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Zap className="w-4 h-4 text-medical-600" />
-              <span>4. Sensory Examination</span>
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Activity className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span>2. Reflexes</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Deep Tendon Reflexes, Plantar Response)
+              </span>
             </div>
-            {openSections.sensory ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
+            {openGroups.reflexes ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             )}
           </button>
 
-          {openSections.sensory && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
+          {openGroups.reflexes && (
+            <div className="p-4 pt-0 space-y-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                {renderExamRow('Reflexes', 'Reflexes', 'Reflexes (Deep Tendon)', {
+                  useMasterData: true,
+                  masterCategory: 'Reflexes',
+                  placeholder: 'Normal (+2), Reduced (+1), Brisk (+3)...',
+                })}
+                {renderExamRow('Plantar Response', 'Plantar Response', 'Plantar Response (Babinski)', {
+                  useMasterData: true,
+                  masterCategory: 'Plantar Response',
+                  placeholder: 'Flexor (Normal), Extensor (Babinski +)...',
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── GROUP 3: Cranial Nerves (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
+          <button
+            type="button"
+            onClick={() => toggleGroup('cranial')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
+          >
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Eye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span>3. Cranial Nerves</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Pupillary Reaction, Facial Sensation, Swallowing, CN I–XII, Eye)
+              </span>
+            </div>
+            {openGroups.cranial ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {openGroups.cranial && (
+            <div className="p-4 pt-0 space-y-3.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              {/* Primary Key Cranial Findings from Prompt */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                {renderExamRow('Pupils', 'Pupillary Reaction', 'Pupillary Reaction', {
+                  useMasterData: true,
+                  masterCategory: 'Pupils',
+                  placeholder: 'Normal, Reactive, Sluggish, Anisocoria...',
+                })}
+                {renderExamRow('Facial Sensation', 'Facial Sensation', 'Facial Sensation (Trigeminal V)', {
+                  useMasterData: true,
+                  masterCategory: 'Facial Sensation',
+                  placeholder: 'Normal, Decreased, Loss of sensation...',
+                })}
+                {renderExamRow('Swallowing Function', 'Swallowing Function', 'Swallowing Function', {
+                  useMasterData: true,
+                  masterCategory: 'Swallowing Function',
+                  placeholder: 'Normal, Impaired, Dysphagia...',
+                })}
+              </div>
+
+              {/* Fundoscopy */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {renderExamRow('Fundoscopy', 'Fundoscopy', 'Fundoscopic Examination', {
+                  useMasterData: true,
+                  masterCategory: 'Fundoscopy',
+                  placeholder: 'Normal, Abnormal, Papilledema, Hemorrhage...',
+                })}
+              </div>
+
+              {/* Detailed CN I through CN XII Matrix */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Individual Cranial Nerves (CN I – CN XII)
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { num: 'I', name: 'Olfactory (Smell)' },
+                    { num: 'II', name: 'Optic (Visual Acuity & Fields)' },
+                    { num: 'III', name: 'Oculomotor (Pupil & Eye Movement)' },
+                    { num: 'IV', name: 'Trochlear (Down & In Gaze)' },
+                    { num: 'V', name: 'Trigeminal (Facial Sensation & Mastication)' },
+                    { num: 'VI', name: 'Abducens (Lateral Gaze)' },
+                    { num: 'VII', name: 'Facial (Facial Muscles & Taste)' },
+                    { num: 'VIII', name: 'Vestibulocochlear (Hearing & Balance)' },
+                    { num: 'IX', name: 'Glossopharyngeal (Palatal Sensation & Gag)' },
+                    { num: 'X', name: 'Vagus (Voice & Palate Elevation)' },
+                    { num: 'XI', name: 'Accessory (Trapezius & SCM Power)' },
+                    { num: 'XII', name: 'Hypoglossal (Tongue Protrusion)' },
+                  ].map((cnItem) => (
+                    <div key={cnItem.num}>
+                      {renderExamRow('Cranial Nerves', `CN ${cnItem.num}`, `CN ${cnItem.num} — ${cnItem.name}`, {
+                        useMasterData: true,
+                        masterCategory: 'Cranial Nerves',
+                        placeholder: 'Normal, Impaired, Weak...',
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── GROUP 4: Coordination & Gait (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
+          <button
+            type="button"
+            onClick={() => toggleGroup('coordination_gait')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
+          >
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Move className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span>4. Coordination & Gait</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Gait & Balance, Coordination, Romberg, Nystagmus, Cerebellar)
+              </span>
+            </div>
+            {openGroups.coordination_gait ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {openGroups.coordination_gait && (
+            <div className="p-4 pt-0 space-y-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                {renderExamRow('Gait & Balance', 'Gait & Balance', 'Gait & Balance', {
+                  useMasterData: true,
+                  masterCategory: 'Gait & Balance',
+                  placeholder: 'Normal, Unsteady, Ataxic, Shuffling...',
+                })}
+                {renderExamRow('Coordination', 'Coordination', 'Coordination (Finger-Nose, Heel-Shin)', {
+                  useMasterData: true,
+                  masterCategory: 'Coordination',
+                  placeholder: 'Normal, Dysmetria, Ataxia...',
+                })}
+                {renderExamRow('Romberg Test', 'Romberg Test', 'Romberg Test', {
+                  useMasterData: true,
+                  masterCategory: 'Romberg Test',
+                  placeholder: 'Negative, Positive, Unable to perform...',
+                })}
+                {renderExamRow('Nystagmus', 'Nystagmus', 'Nystagmus', {
+                  useMasterData: true,
+                  masterCategory: 'Nystagmus',
+                  placeholder: 'Absent, Present, Horizontal...',
+                })}
+                {renderExamRow('Cerebellar Function', 'Cerebellar Function', 'Cerebellar Signs & Function', {
+                  useMasterData: true,
+                  masterCategory: 'Cerebellar Function',
+                  placeholder: 'Normal, Impaired, Dysdiadochokinesia...',
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── GROUP 5: Sensory Examination (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
+          <button
+            type="button"
+            onClick={() => toggleGroup('sensory')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
+          >
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Compass className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span>5. Sensory Examination</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Pain, Vibration, Temperature, Proprioception, Joint Position, Sharp/Dull)
+              </span>
+            </div>
+            {openGroups.sensory ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {openGroups.sensory && (
+            <div className="p-4 pt-0 space-y-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {renderExamRow('Sensory Examination', 'Pain Sensation', 'Pain Sensation (Pinprick)', {
                   useMasterData: true,
                   masterCategory: 'Sensory Examination',
@@ -503,99 +634,30 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
           )}
         </div>
 
-        {/* ─── 5. Coordination & Cerebellar ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
+        {/* ─── GROUP 6: Mental & Higher Functions (Section 10) ─── */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
           <button
             type="button"
-            onClick={() => toggleSection('coordination')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
+            onClick={() => toggleGroup('mental_higher')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors"
           >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Compass className="w-4 h-4 text-medical-600" />
-              <span>5. Coordination & Cerebellar Function</span>
+            <div className="flex items-center gap-2.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+              <Smile className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span>6. Mental & Higher Functions</span>
+              <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                (Mental Status, Speech Assessment)
+              </span>
             </div>
-            {openSections.coordination ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
+            {openGroups.mental_higher ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             )}
           </button>
 
-          {openSections.coordination && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderExamRow('Coordination', 'Coordination', 'Coordination (Finger-Nose, Heel-Shin)', {
-                  useMasterData: true,
-                  masterCategory: 'Coordination',
-                  placeholder: 'Normal, Dysmetria, Ataxia...',
-                })}
-                {renderExamRow('Cerebellar Function', 'Cerebellar Function', 'Cerebellar Signs & Function', {
-                  useMasterData: true,
-                  masterCategory: 'Cerebellar Function',
-                  placeholder: 'Normal, Impaired, Dysdiadochokinesia...',
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── 6. Gait & Balance ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('gait')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Move className="w-4 h-4 text-medical-600" />
-              <span>6. Gait & Balance</span>
-            </div>
-            {openSections.gait ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.gait && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderExamRow('Gait & Balance', 'Gait & Balance', 'Gait & Balance Evaluation', {
-                  useMasterData: true,
-                  masterCategory: 'Gait & Balance',
-                  placeholder: 'Normal, Unsteady, Ataxic, Shuffling...',
-                })}
-                {renderExamRow('Romberg Test', 'Romberg Test', 'Romberg Test', {
-                  useMasterData: true,
-                  masterCategory: 'Romberg Test',
-                  placeholder: 'Negative, Positive, Unable to perform...',
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── 7. Mental Status & Speech ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('mental')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Smile className="w-4 h-4 text-medical-600" />
-              <span>7. Mental Status & Speech</span>
-            </div>
-            {openSections.mental ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.mental && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {openGroups.mental_higher && (
+            <div className="p-4 pt-0 space-y-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {renderExamRow('Mental Status', 'Mental Status', 'Mental Status / Consciousness', {
                   useMasterData: true,
                   masterCategory: 'Mental Status',
@@ -607,148 +669,35 @@ export const NeurologicalExamSection: React.FC<NeurologicalExamSectionProps> = (
                   placeholder: 'Normal, Dysarthria, Aphasia, Slurred...',
                 })}
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* ─── 8. Special Tests & Meningeal Signs ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('special')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <ShieldAlert className="w-4 h-4 text-medical-600" />
-              <span>8. Special Tests & Meningeal Signs</span>
-            </div>
-            {openSections.special ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.special && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderExamRow('SLR', 'SLR - Left', 'Straight Leg Raise (SLR) — Left', {
-                  useMasterData: true,
-                  masterCategory: 'SLR',
-                  placeholder: 'Negative, Positive, Limited, Painful...',
-                })}
-                {renderExamRow('SLR', 'SLR - Right', 'Straight Leg Raise (SLR) — Right', {
-                  useMasterData: true,
-                  masterCategory: 'SLR',
-                  placeholder: 'Negative, Positive, Limited, Painful...',
-                })}
-                {renderExamRow('Meningeal Signs', 'Brudzinski Sign', 'Brudzinski Sign', {
-                  useMasterData: true,
-                  masterCategory: 'Meningeal Signs',
-                  placeholder: 'Negative, Positive...',
-                })}
-                {renderExamRow('Meningeal Signs', 'Kernig Sign', 'Kernig Sign', {
-                  useMasterData: true,
-                  masterCategory: 'Meningeal Signs',
-                  placeholder: 'Negative, Positive...',
-                })}
-                {renderExamRow('Meningeal Signs', 'Neck Rigidity', 'Neck Rigidity / Flexion Resistance', {
-                  useMasterData: true,
-                  masterCategory: 'Meningeal Signs',
-                  placeholder: 'Negative, Positive, Limited...',
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── 9. Eye & Fundoscopy ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('eye')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Eye className="w-4 h-4 text-medical-600" />
-              <span>9. Eye & Fundoscopic Examination</span>
-            </div>
-            {openSections.eye ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.eye && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderExamRow('Pupils', 'Pupillary Reaction', 'Pupillary Reaction', {
-                  useMasterData: true,
-                  masterCategory: 'Pupils',
-                  placeholder: 'Normal, Reactive, Sluggish, Anisocoria...',
-                })}
-                {renderExamRow('Nystagmus', 'Nystagmus', 'Nystagmus', {
-                  useMasterData: true,
-                  masterCategory: 'Nystagmus',
-                  placeholder: 'Absent, Present, Horizontal...',
-                })}
-                {renderExamRow('Fundoscopy', 'Fundoscopy', 'Fundoscopic Examination', {
-                  useMasterData: true,
-                  masterCategory: 'Fundoscopy',
-                  placeholder: 'Normal, Abnormal, Papilledema, Hemorrhage...',
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ─── 10. Other Findings ─── */}
-        <div className="border border-navy-200 rounded-xl overflow-hidden bg-navy-50/30">
-          <button
-            type="button"
-            onClick={() => toggleSection('other')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-navy-100/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 font-bold text-sm text-navy-950">
-              <Activity className="w-4 h-4 text-medical-600" />
-              <span>10. Other Neurological Findings</span>
-            </div>
-            {openSections.other ? (
-              <ChevronDown className="w-4 h-4 text-navy-400" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-navy-400" />
-            )}
-          </button>
-
-          {openSections.other && (
-            <div className="p-4 pt-0 space-y-3 border-t border-navy-100 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {renderExamRow('Muscle Wasting', 'Muscle Wasting', 'Muscle Wasting / Bulk', {
-                  useMasterData: true,
-                  masterCategory: 'Muscle Wasting',
-                  placeholder: 'None, Mild, Moderate, Severe, Focal...',
-                })}
-                {renderExamRow('Abnormal Movements', 'Abnormal Movements', 'Abnormal / Involuntary Movements', {
-                  useMasterData: true,
-                  masterCategory: 'Abnormal Movements',
-                  placeholder: 'None, Tremor, Chorea, Dystonia, Myoclonus...',
-                })}
-                {renderExamRow('Facial Sensation', 'Facial Sensation', 'Facial Sensation (Trigeminal V1-V3)', {
-                  useMasterData: true,
-                  masterCategory: 'Facial Sensation',
-                  placeholder: 'Normal, Decreased, Loss of sensation...',
-                })}
-                {renderExamRow('Swallowing Function', 'Swallowing Function', 'Swallowing Function', {
-                  useMasterData: true,
-                  masterCategory: 'Swallowing Function',
-                  placeholder: 'Normal, Impaired, Dysphagia...',
-                })}
+              {/* Meningeal Signs optional sub-item */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Meningeal Signs
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {renderExamRow('Meningeal Signs', 'Neck Rigidity', 'Neck Rigidity', {
+                    useMasterData: true,
+                    masterCategory: 'Meningeal Signs',
+                    placeholder: 'Negative, Positive, Limited...',
+                  })}
+                  {renderExamRow('Meningeal Signs', 'Kernig Sign', 'Kernig Sign', {
+                    useMasterData: true,
+                    masterCategory: 'Meningeal Signs',
+                    placeholder: 'Negative, Positive...',
+                  })}
+                  {renderExamRow('Meningeal Signs', 'Brudzinski Sign', 'Brudzinski Sign', {
+                    useMasterData: true,
+                    masterCategory: 'Meningeal Signs',
+                    placeholder: 'Negative, Positive...',
+                  })}
+                </div>
               </div>
             </div>
           )}
         </div>
       </CardContent>
+      )}
     </Card>
   );
 };

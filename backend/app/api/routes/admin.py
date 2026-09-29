@@ -1,12 +1,23 @@
 import os
+import re
 from math import ceil
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.api.deps import get_db, require_roles
 from app.models.user import User, UserRole
+from app.core.security import get_password_hash
+from app.schemas.user import (
+    UserResponse,
+    AdminCreateUserRequest,
+    AdminUpdateUserRequest,
+    AdminResetPasswordRequest,
+    UserStatusUpdate,
+)
+
 from app.models.master_data import (
     Symptom,
     PatientState,
@@ -75,6 +86,8 @@ from app.services.settings_service import (
     save_clinic_logo,
     get_admin_dashboard_stats,
 )
+from app.schemas.dashboard import AdminDashboardResponse
+from app.services.dashboard_service import get_admin_dashboard_data
 
 router = APIRouter(prefix="/admin", tags=["Admin Portal & Master Data Management"])
 
@@ -83,7 +96,7 @@ admin_only = require_roles([UserRole.ADMIN])
 
 
 # =========================================================================
-# 0. Admin Dashboard Statistics
+# 0. Admin Dashboard Statistics & Real-time Metrics
 # =========================================================================
 @router.get("/stats", response_model=AdminDashboardStatsResponse)
 def get_dashboard_stats(
@@ -92,6 +105,20 @@ def get_dashboard_stats(
 ):
     stats = get_admin_dashboard_stats(db)
     return AdminDashboardStatsResponse(**stats)
+
+
+@router.get("/dashboard", response_model=AdminDashboardResponse)
+def get_admin_dashboard(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    Returns full system, master data, user management, and recent activity metrics
+    specifically for the Administrator Dashboard.
+    Strictly restricted to ADMIN users only (403 for DOCTOR or STAFF).
+    """
+    data = get_admin_dashboard_data(db)
+    return AdminDashboardResponse(**data)
 
 
 # =========================================================================
@@ -913,3 +940,220 @@ def admin_toggle_follow_up_status(
     if not item:
         raise HTTPException(status_code=404, detail="Follow-up option not found")
     return FollowUpOptionResponse.model_validate(item)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 11. USER MANAGEMENT (PHASE 9.1)
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/users", response_model=List[UserResponse])
+def admin_list_users(
+    search: Optional[str] = Query(None, description="Search by username, full name, or email"),
+    role: Optional[UserRole] = Query(None, description="Filter by role"),
+    is_active: Optional[bool] = Query(None, description="Filter by status"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    List all portal users with optional search and filters.
+    Passwords and password hashes are never exposed.
+    """
+    query = db.query(User)
+
+    if role:
+        query = query.filter(User.role == role)
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+    if search and search.strip():
+        term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                User.username.ilike(term),
+                User.full_name.ilike(term),
+                User.email.ilike(term),
+            )
+        )
+
+    users = query.order_by(User.created_at.desc()).all()
+    return [UserResponse.model_validate(u) for u in users]
+
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def admin_create_user(
+    data: AdminCreateUserRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    Create a new user account (Admin, Doctor, or Staff).
+    Enforces username uniqueness and minimum password length.
+    """
+    clean_username = data.username.strip().lower()
+    if len(clean_username) < 3 or len(clean_username) > 50:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username must be between 3 and 50 characters."
+        )
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", clean_username):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username may only contain letters, numbers, underscores, and hyphens."
+        )
+
+    # Check username uniqueness
+    existing_user = db.query(User).filter(User.username.ilike(clean_username)).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A user with this username already exists."
+        )
+
+    # Validate password length
+    if len(data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters in length."
+        )
+
+    full_name = data.full_name.strip() if data.full_name and data.full_name.strip() else clean_username.capitalize()
+    email = str(data.email).strip().lower() if data.email else f"{clean_username}@clinic.portal"
+
+    # Check email uniqueness if email provided
+    if data.email:
+        existing_email = db.query(User).filter(User.email.ilike(email)).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email address already exists."
+            )
+    else:
+        # Avoid collision on synthetic email
+        if db.query(User).filter(User.email.ilike(email)).first():
+            import time
+            email = f"{clean_username}_{int(time.time())}@clinic.portal"
+
+    hashed_password = get_password_hash(data.password)
+    user = User(
+        username=clean_username,
+        full_name=full_name,
+        email=email,
+        role=data.role,
+        hashed_password=hashed_password,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+@router.patch("/users/{user_id}", response_model=UserResponse)
+def admin_update_user(
+    user_id: int,
+    data: AdminUpdateUserRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    Update user profile details or role.
+    Prevents demoting the last active administrator.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Admin Self-Protection: check if demoting the only active admin
+    if data.role and data.role != user.role and user.role == UserRole.ADMIN and user.is_active:
+        other_active_admins = db.query(User).filter(
+            User.role == UserRole.ADMIN,
+            User.is_active == True,
+            User.id != user_id
+        ).count()
+        if other_active_admins == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot modify the role of the only active administrator account. System must have at least one active administrator."
+            )
+        user.role = data.role
+
+    if data.full_name and data.full_name.strip():
+        user.full_name = data.full_name.strip()
+
+    if data.email:
+        clean_email = str(data.email).strip().lower()
+        collision = db.query(User).filter(User.email.ilike(clean_email), User.id != user_id).first()
+        if collision:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email address already exists."
+            )
+        user.email = clean_email
+
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+
+@router.patch("/users/{user_id}/status", response_model=UserResponse)
+def admin_toggle_user_status(
+    user_id: int,
+    data: UserStatusUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    Activate or deactivate a user account.
+    Prevents deactivating the only active administrator account.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Admin Self-Protection: check if deactivating the last active admin
+    if not data.is_active and user.role == UserRole.ADMIN and user.is_active:
+        other_active_admins = db.query(User).filter(
+            User.role == UserRole.ADMIN,
+            User.is_active == True,
+            User.id != user_id
+        ).count()
+        if other_active_admins == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot deactivate the only active administrator account. System must have at least one active administrator."
+            )
+
+    user.is_active = data.is_active
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/users/{user_id}/reset-password")
+def admin_reset_user_password(
+    user_id: int,
+    data: AdminResetPasswordRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(admin_only),
+):
+    """
+    Reset another user's password.
+    Hashes the password with PBKDF2-HMAC-SHA256 before saving.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if len(data.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters in length."
+        )
+
+    user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    return {
+        "success": True,
+        "message": f"Password for user '{user.username}' has been successfully updated."
+    }
+

@@ -30,13 +30,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        'bg-medical-600 text-white hover:bg-medical-700 active:bg-medical-800 focus-visible:ring-medical-500 shadow-sm',
+        'bg-medical-600 text-white hover:bg-medical-700 active:bg-medical-800 focus-visible:ring-medical-500 shadow-sm dark:bg-medical-600 dark:hover:bg-medical-500',
       secondary:
-        'bg-navy-100 text-navy-800 hover:bg-navy-200 active:bg-navy-300 focus-visible:ring-navy-400',
+        'bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 focus-visible:ring-slate-400',
       outline:
-        'border border-navy-300 bg-white text-navy-700 hover:bg-navy-50 active:bg-navy-100 focus-visible:ring-medical-500 shadow-sm',
+        'border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 active:bg-slate-100 dark:active:bg-slate-800 focus-visible:ring-medical-500 shadow-xs',
       ghost:
-        'bg-transparent text-navy-700 hover:bg-navy-100 active:bg-navy-200 focus-visible:ring-navy-400',
+        'bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 focus-visible:ring-slate-400',
       destructive:
         'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus-visible:ring-rose-500 shadow-sm',
     };

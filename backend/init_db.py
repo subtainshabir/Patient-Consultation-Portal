@@ -16,53 +16,14 @@ def init_database():
     
     db = SessionLocal()
     try:
-        # Check if users already exist
-        existing_doctor = db.query(User).filter(User.username == "drrauf").first()
-        if not existing_doctor:
-            print("Seeding initial Doctor user (Dr. Rauf)...")
-            doctor_user = User(
-                email="doctor@neurology.pk",
-                username="drrauf",
-                full_name="Dr. Rauf",
-                role=UserRole.DOCTOR,
-                hashed_password=get_password_hash("Doctor@123"),
-                is_active=True
-            )
-            db.add(doctor_user)
+        # Phase 9.1: No hardcoded credentials or automatic default admin accounts.
+        # The first administrator account is created interactively by the user via /setup
+        admin_count = db.query(User).filter(User.role == UserRole.ADMIN, User.is_active == True).count()
+        if admin_count == 0:
+            print("No active administrator detected. First administrator account will be created via the /setup interface.")
         else:
-            print("Doctor user already exists.")
+            print(f"System has {admin_count} active administrator(s).")
 
-        existing_admin = db.query(User).filter(User.username == "admin").first()
-        if not existing_admin:
-            print("Seeding initial Admin user...")
-            admin_user = User(
-                email="admin@neurology.pk",
-                username="admin",
-                full_name="System Administrator",
-                role=UserRole.ADMIN,
-                hashed_password=get_password_hash("Admin@123"),
-                is_active=True
-            )
-            db.add(admin_user)
-        else:
-            print("Admin user already exists.")
-
-        existing_staff = db.query(User).filter(User.username == "staff").first()
-        if not existing_staff:
-            print("Seeding initial Staff user...")
-            staff_user = User(
-                email="staff@neurology.pk",
-                username="staff",
-                full_name="Clinic Receptionist",
-                role=UserRole.STAFF,
-                hashed_password=get_password_hash("Staff@123"),
-                is_active=True
-            )
-            db.add(staff_user)
-        else:
-            print("Staff user already exists.")
-
-        db.commit()
 
         # Seed Clinical Master Data (Phase 3)
         from app.db.seed_master_data import seed_clinical_master_data

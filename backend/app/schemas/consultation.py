@@ -161,6 +161,7 @@ class PrescriptionItemResponse(PrescriptionItemBase):
 
 class ConsultationCreate(BaseModel):
     patient_id: str = Field(..., description="Patient ID (DRN-XXXXXX or integer ID)")
+    consultation_date: Optional[datetime] = Field(None, description="Optional consultation timestamp (defaults to server current time)")
     patient_state_id: Optional[int] = None
     patient_state_name: Optional[str] = None
     symptom_notes: Optional[str] = Field(None, description="Clinical notes for symptoms")

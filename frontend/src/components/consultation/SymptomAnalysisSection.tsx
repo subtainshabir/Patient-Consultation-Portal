@@ -44,29 +44,29 @@ export const SymptomAnalysisSection: React.FC<SymptomAnalysisSectionProps> = ({
   };
 
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+    <Card className="border-slate-200/90 dark:border-slate-800 shadow-2xs">
+      <CardHeader className="pb-3.5 border-b border-slate-100 dark:border-slate-800/80 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-100 dark:border-primary-800/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <Stethoscope className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">Symptom Analysis</CardTitle>
-            <p className="text-xs text-navy-500">Chief complaints and presenting neurological symptoms</p>
+            <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">Symptom Analysis</CardTitle>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Chief complaints and presenting neurological symptoms</p>
           </div>
         </div>
 
         {symptoms.length > 0 && (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 border border-medical-200 text-medical-800">
-            {symptoms.length} {symptoms.length === 1 ? 'symptom selected' : 'symptoms selected'}
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300">
+            {symptoms.length} {symptoms.length === 1 ? 'symptom' : 'symptoms'}
           </span>
         )}
       </CardHeader>
 
       <CardContent className="p-5 space-y-5">
-        {/* Searchable Multi-Select using Phase 3 Master Data */}
+        {/* Searchable Multi-Select using Master Data */}
         <div>
-          <label className="block text-xs font-semibold text-navy-800 mb-1.5">
+          <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
             Search & Select Symptoms
           </label>
           <ClinicalMultiSelect
@@ -78,10 +78,10 @@ export const SymptomAnalysisSection: React.FC<SymptomAnalysisSectionProps> = ({
           />
         </div>
 
-        {/* Symptom Details / Clinical Notes (Section 17) */}
+        {/* Symptom Details / Clinical Notes */}
         <div>
-          <label htmlFor="symptom_notes" className="block text-xs font-semibold text-navy-800 mb-1.5 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-navy-400" />
+          <label htmlFor="symptom_notes" className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
             <span>Symptom Details / Clinical Notes</span>
           </label>
           <textarea
@@ -90,7 +90,7 @@ export const SymptomAnalysisSection: React.FC<SymptomAnalysisSectionProps> = ({
             placeholder="Describe symptom onset, duration, progression, aggravating or relieving factors, associated complaints..."
             value={symptomNotes}
             onChange={(e) => onNotesChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-xs text-navy-900 bg-white border border-navy-200 rounded-xl placeholder:text-navy-400 focus:outline-hidden focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors"
+            className="w-full px-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
           />
         </div>
       </CardContent>

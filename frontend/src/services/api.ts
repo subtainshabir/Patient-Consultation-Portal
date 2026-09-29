@@ -84,11 +84,37 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 
     if (!response.ok) {
+      const anyData = data as Record<string, unknown> | undefined;
       const errorData = data as ApiErrorResponse | undefined;
-      const message =
+      let message =
         errorData?.message ||
-        (typeof data === 'string' && data) ||
-        `Request failed with status ${response.status}`;
+        (typeof anyData?.detail === 'string' ? anyData.detail : '') ||
+        (Array.isArray(anyData?.detail)
+          ? (anyData.detail as Array<{ msg?: string; loc?: string[] }>)
+              .map((d) => d.msg || JSON.stringify(d))
+              .join('; ')
+          : '') ||
+        (typeof data === 'string' && data ? data : '');
+
+      const isGenericStatus = !message || message.startsWith('Request failed with status');
+
+      // Human-friendly sanitization (Requirement 13)
+      if (
+        response.status === 422 ||
+        (isGenericStatus && response.status === 422) ||
+        message.toLowerCase().includes('unprocessable entity')
+      ) {
+        message = 'Please check the required fields.';
+      } else if (
+        response.status >= 500 ||
+        (isGenericStatus && response.status >= 500) ||
+        message.toLowerCase().includes('internal server error')
+      ) {
+        message = 'Unable to complete this action. Please try again.';
+      } else if (isGenericStatus) {
+        message = 'Unable to complete this action. Please try again.';
+      }
+
       const errorCode = errorData?.error_code || `HTTP_${response.status}`;
 
       // If unauthorized on protected endpoint, clear sensitive token
@@ -111,7 +137,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 
     throw new ApiError(
-      err instanceof Error ? err.message : 'A network error occurred. Please check your connection.',
+      'Unable to complete this action. Please try again.',
       0,
       'NETWORK_ERROR'
     );

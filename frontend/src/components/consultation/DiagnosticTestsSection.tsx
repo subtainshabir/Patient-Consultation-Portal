@@ -14,6 +14,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { cn } from '../../utils/cn';
 import { masterDataService } from '../../services/masterDataService';
 import { useToast } from '../../hooks/useToast';
 import type { DiagnosticTest } from '../../types/masterData';
@@ -31,22 +32,22 @@ const STATUS_OPTIONS: { value: DiagnosticTestStatus; label: string; badgeClass: 
   {
     value: 'Ordered',
     label: 'Ordered',
-    badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+    badgeClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
   },
   {
     value: 'Pending',
     label: 'Pending',
-    badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
+    badgeClass: 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800',
   },
   {
     value: 'Completed',
     label: 'Completed',
-    badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
   },
   {
     value: 'Reviewed',
     label: 'Reviewed',
-    badgeClass: 'bg-purple-50 text-purple-800 border-purple-200',
+    badgeClass: 'bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
   },
 ];
 
@@ -56,6 +57,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
 }) => {
   const { success, error: toastError } = useToast();
 
+  const [isSectionOpen, setIsSectionOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -306,41 +308,52 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
   };
 
   return (
-    <Card className="border-navy-200 shadow-sm">
-      <CardHeader className="pb-3 border-b border-navy-100 flex flex-row items-center justify-between">
+    <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-slate-900">
+      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-medical-50 text-medical-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center">
             <FlaskConical className="w-4 h-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-navy-950">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
               Diagnostic Tests
             </CardTitle>
-            <p className="text-xs text-navy-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Laboratory, electrophysiology, and neuroimaging investigations
             </p>
           </div>
         </div>
 
-        {tests.length > 0 && (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 border border-medical-200 text-medical-800">
-            {tests.length} {tests.length === 1 ? 'test selected' : 'tests selected'}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {tests.length > 0 && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300">
+              {tests.length} {tests.length === 1 ? 'test' : 'tests'}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsSectionOpen((prev) => !prev)}
+            className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label={isSectionOpen ? "Collapse Diagnostic Tests" : "Expand Diagnostic Tests"}
+          >
+            <ChevronDown className={cn("w-5 h-5 transition-transform duration-200", isSectionOpen && "rotate-180")} />
+          </button>
+        </div>
       </CardHeader>
 
-      <CardContent className="p-5 space-y-5">
+      {isSectionOpen && (
+        <CardContent className="p-5 space-y-5 animate-in fade-in duration-150">
         {/* ─── 1. Searchable Diagnostic Test Field ─── */}
         <div ref={containerRef} className="relative">
           <label
             htmlFor="diagnostic-test-search"
-            className="block text-xs font-semibold text-navy-800 mb-1.5"
+            className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5"
           >
             Search & Order Diagnostic Tests
           </label>
 
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-navy-400">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
               <Search className="w-4 h-4" />
             </div>
 
@@ -348,7 +361,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
               id="diagnostic-test-search"
               ref={searchInputRef}
               type="text"
-              className="w-full pl-10 pr-10 py-2.5 text-xs text-navy-900 bg-white border border-navy-200 rounded-xl placeholder:text-navy-400 focus:outline-hidden focus:border-medical-500 focus:ring-1 focus:ring-medical-500 transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
               placeholder="Search diagnostic test (e.g. MRI Brain, EEG, CBC, HbA1c, CT Brain)..."
               value={searchQuery}
               onChange={(e) => {
@@ -362,18 +375,18 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
             />
 
             {isLoadingMaster && (
-              <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-navy-400">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-medical-600" />
+              <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600 dark:text-primary-400" />
               </div>
             )}
           </div>
 
           {/* Autocomplete Dropdown */}
           {isDropdownOpen && (
-            <div className="absolute z-30 w-full mt-1.5 bg-white border border-navy-200 rounded-xl shadow-lg max-h-72 overflow-y-auto divide-y divide-navy-50 animate-in fade-in duration-150">
+            <div className="absolute z-30 w-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 animate-in fade-in duration-150">
               {filteredMasterTests.length > 0 ? (
                 <div>
-                  <div className="px-3 py-1.5 bg-navy-50/70 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">
+                  <div className="px-3 py-1.5 bg-slate-50/70 dark:bg-slate-800/80 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Diagnostic Tests Master Data
                   </div>
                   {filteredMasterTests.map((item, idx) => {
@@ -390,24 +403,24 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                         disabled={isSelected}
                         className={`w-full px-3.5 py-2 text-left flex items-center justify-between text-xs transition-colors ${
                           isSelected
-                            ? 'bg-navy-50/50 text-navy-400 cursor-not-allowed'
+                            ? 'bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed'
                             : isHighlighted
-                            ? 'bg-medical-50 text-medical-900 font-medium'
-                            : 'hover:bg-navy-50 text-navy-800'
+                            ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-900 dark:text-primary-200 font-medium'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="truncate">{item.name}</span>
                           {item.category && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-navy-100/80 text-navy-600 shrink-0 font-medium">
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0 font-medium">
                               {item.category}
                             </span>
                           )}
                         </div>
 
                         {isSelected && (
-                          <span className="text-[11px] text-medical-700 font-semibold flex items-center gap-1 shrink-0">
-                            <CheckCircle2 className="w-3 h-3 text-medical-600" />
+                          <span className="text-[11px] text-primary-700 dark:text-primary-400 font-semibold flex items-center gap-1 shrink-0">
+                            <CheckCircle2 className="w-3 h-3 text-primary-600 dark:text-primary-400" />
                             Added
                           </span>
                         )}
@@ -419,10 +432,10 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
 
               {/* No match / Add Custom Option (Section 6) */}
               {!exactMatchExists && debouncedQuery && (
-                <div className="p-2 bg-gradient-to-r from-medical-50/50 via-white to-navy-50/40">
+                <div className="p-2 bg-gradient-to-r from-primary-50/50 via-white dark:via-slate-800 to-slate-50/40">
                   {filteredMasterTests.length === 0 && (
-                    <p className="text-xs text-navy-500 px-2 py-1 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 text-navy-400 shrink-0" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>No diagnostic test found matching "{debouncedQuery}".</span>
                     </p>
                   )}
@@ -430,54 +443,66 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                     type="button"
                     onClick={() => handleAddCustomTest(debouncedQuery)}
                     disabled={isCreatingCustom}
-                    className={`w-full mt-1 px-3 py-2 rounded-lg text-left text-xs font-semibold text-medical-700 bg-white border border-medical-200 hover:bg-medical-50/80 flex items-center justify-between transition-colors shadow-xs ${
+                    className={`w-full mt-1 px-3 py-2 rounded-lg text-left text-xs font-semibold text-primary-700 dark:text-primary-300 bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-700 hover:bg-primary-50/80 dark:hover:bg-primary-950/40 flex items-center justify-between transition-colors shadow-2xs ${
                       highlightedIndex === filteredMasterTests.length
-                        ? 'ring-2 ring-medical-500'
+                        ? 'ring-2 ring-primary-500'
                         : ''
                     }`}
                   >
                     <span className="flex items-center gap-1.5">
                       {isCreatingCustom ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-medical-600" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600 dark:text-primary-400" />
                       ) : (
-                        <Plus className="w-3.5 h-3.5 text-medical-600" />
+                        <Plus className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
                       )}
                       <span>+ Add "{debouncedQuery}"</span>
                     </span>
-                    <span className="text-[10px] text-navy-400 font-normal">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
                       Save to master data
                     </span>
                   </button>
                 </div>
               )}
 
-              {filteredMasterTests.length === 0 && !debouncedQuery && (
-                <div className="p-4 text-center text-xs text-navy-500">
+              {masterTests.length === 0 && !isLoadingMaster ? (
+                <div className="p-4 text-center space-y-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    No diagnostic tests available.
+                  </p>
+                  <a
+                    href="/admin/master-data?category=diagnostic_tests"
+                    className="inline-flex items-center text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline px-2.5 py-1 rounded-md bg-primary-50 dark:bg-primary-950/50 border border-primary-200 dark:border-primary-800"
+                  >
+                    Manage Diagnostic Tests
+                  </a>
+                </div>
+              ) : filteredMasterTests.length === 0 && !debouncedQuery ? (
+                <div className="p-4 text-center text-xs text-slate-500 dark:text-slate-400">
                   Type to search diagnostic investigations.
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>
 
         {/* ─── 2. Selected Tests Chips / Tags (Section 7) ─── */}
         <div>
-          <div className="flex items-center justify-between text-xs text-navy-700 font-semibold mb-2">
+          <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 font-bold mb-2">
             <span>Selected Tests ({tests.length})</span>
             {tests.length > 0 && (
-              <span className="text-[11px] text-navy-400 font-normal">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal">
                 Click a card below to edit clinical findings and indication
               </span>
             )}
           </div>
 
           {tests.length === 0 ? (
-            <div className="p-6 rounded-xl border border-dashed border-navy-200 text-center bg-navy-50/40">
-              <FlaskConical className="w-6 h-6 text-navy-300 mx-auto mb-2" />
-              <p className="text-xs font-medium text-navy-700">
+            <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-800/40">
+              <FlaskConical className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 No diagnostic tests selected.
               </p>
-              <p className="text-[11px] text-navy-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Search above to order laboratory, imaging, or neuro-diagnostic tests for this consultation.
               </p>
             </div>
@@ -497,8 +522,8 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                       key={`${test.test_name}-${index}`}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-all ${
                         isExpanded
-                          ? 'bg-medical-50/80 border-medical-300 text-medical-950 shadow-xs'
-                          : 'bg-white border-navy-200 text-navy-800 hover:border-navy-300 shadow-2xs'
+                          ? 'bg-primary-50/80 dark:bg-primary-950/60 border-primary-300 dark:border-primary-700 text-primary-950 dark:text-primary-100 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs'
                       }`}
                     >
                       <button
@@ -506,7 +531,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                         onClick={() =>
                           setExpandedIndex(isExpanded ? null : index)
                         }
-                        className="font-semibold hover:text-medical-700 flex items-center gap-1.5 text-left"
+                        className="font-semibold hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1.5 text-left"
                       >
                         <span>{test.test_name}</span>
                         <span
@@ -521,12 +546,12 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                         onClick={() =>
                           setExpandedIndex(isExpanded ? null : index)
                         }
-                        className="text-navy-400 hover:text-navy-700 p-0.5"
+                        className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 p-0.5"
                         title={isExpanded ? 'Collapse details' : 'Edit details'}
                         aria-label="Toggle test details"
                       >
                         {isExpanded ? (
-                          <ChevronUp className="w-3 h-3 text-medical-600" />
+                          <ChevronUp className="w-3 h-3 text-primary-600 dark:text-primary-400" />
                         ) : (
                           <ChevronDown className="w-3 h-3" />
                         )}
@@ -535,7 +560,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveTest(index)}
-                        className="text-navy-400 hover:text-rose-600 p-0.5 ml-0.5 rounded-sm hover:bg-rose-50"
+                        className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 p-0.5 ml-0.5 rounded-sm hover:bg-rose-50 dark:hover:bg-rose-950/40"
                         title={`Remove ${test.test_name}`}
                         aria-label={`Remove ${test.test_name}`}
                       >
@@ -558,16 +583,16 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                 return (
                   <div
                     key={`details-${test.test_name}-${index}`}
-                    className="p-4 rounded-xl border border-medical-200 bg-gradient-to-b from-medical-50/30 to-white space-y-4 shadow-sm animate-in fade-in duration-150"
+                    className="p-4 rounded-xl border border-primary-200/80 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 space-y-4 shadow-xs animate-in fade-in duration-150"
                   >
                     {/* Header */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-navy-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-navy-950">
+                        <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                           {test.test_name}
                         </span>
                         {test.category && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-navy-100 text-navy-600 font-medium">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium">
                             {test.category}
                           </span>
                         )}
@@ -582,7 +607,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                         <button
                           type="button"
                           onClick={() => setExpandedIndex(null)}
-                          className="text-xs text-navy-500 hover:text-navy-800 font-medium flex items-center gap-1"
+                          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium flex items-center gap-1"
                         >
                           <span>Hide Details</span>
                           <ChevronUp className="w-3.5 h-3.5" />
@@ -590,7 +615,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveTest(index)}
-                          className="text-xs text-rose-600 hover:text-rose-700 font-medium px-2 py-0.5 rounded-md hover:bg-rose-50"
+                          className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium px-2 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40"
                         >
                           Remove Test
                         </button>
@@ -601,7 +626,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                       {/* Status Dropdown */}
                       <div>
-                        <label className="block text-navy-700 font-semibold mb-1">
+                        <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                           Test Status <span className="text-rose-500">*</span>
                         </label>
                         <select
@@ -613,7 +638,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                               e.target.value as DiagnosticTestStatus
                             )
                           }
-                          className="w-full px-3 py-2 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:border-medical-500 focus:ring-1 focus:ring-medical-500"
+                          className="w-full px-3 py-2 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                         >
                           {STATUS_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -621,15 +646,15 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                             </option>
                           ))}
                         </select>
-                        <p className="text-[11px] text-navy-400 mt-1">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
                           Selection does not imply completion. Default is "Ordered".
                         </p>
                       </div>
 
                       {/* Result Date */}
                       <div>
-                        <label className="block text-navy-700 font-semibold mb-1 flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-navy-400" />
+                        <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>Result Date</span>
                         </label>
                         <input
@@ -646,14 +671,14 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                               e.target.value ? e.target.value : null
                             )
                           }
-                          className="w-full px-3 py-2 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:border-medical-500 focus:ring-1 focus:ring-medical-500"
+                          className="w-full px-3 py-2 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                         />
                       </div>
 
                       {/* Clinical Indication */}
                       <div className="md:col-span-2">
-                        <label className="block text-navy-700 font-semibold mb-1 flex items-center gap-1">
-                          <Info className="w-3 h-3 text-navy-400" />
+                        <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1 flex items-center gap-1">
+                          <Info className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>Clinical Indication (Optional)</span>
                         </label>
                         <input
@@ -668,14 +693,14 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                             )
                           }
                           maxLength={500}
-                          className="w-full px-3 py-2 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:border-medical-500 focus:ring-1 focus:ring-medical-500 placeholder:text-navy-400"
+                          className="w-full px-3 py-2 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                       </div>
 
                       {/* Result / Findings */}
                       <div className="md:col-span-2">
-                        <label className="block text-navy-700 font-semibold mb-1 flex items-center gap-1">
-                          <FileText className="w-3 h-3 text-navy-400" />
+                        <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1 flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                           <span>Result / Findings (Optional)</span>
                         </label>
                         <textarea
@@ -689,13 +714,13 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:border-medical-500 focus:ring-1 focus:ring-medical-500 placeholder:text-navy-400"
+                          className="w-full px-3 py-2 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                       </div>
 
                       {/* Doctor Notes */}
                       <div className="md:col-span-2">
-                        <label className="block text-navy-700 font-semibold mb-1">
+                        <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
                           Doctor Notes (Optional)
                         </label>
                         <textarea
@@ -709,7 +734,7 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 text-xs text-navy-900 bg-white border border-navy-200 rounded-lg focus:border-medical-500 focus:ring-1 focus:ring-medical-500 placeholder:text-navy-400"
+                          className="w-full px-3 py-2 text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-primary-500 focus:ring-1 focus:ring-primary-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                       </div>
                     </div>
@@ -720,6 +745,8 @@ export const DiagnosticTestsSection: React.FC<DiagnosticTestsSectionProps> = ({
           )}
         </div>
       </CardContent>
+      )}
     </Card>
   );
 };
+

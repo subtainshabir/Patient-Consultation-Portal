@@ -34,14 +34,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-navy-700 flex items-center gap-1 select-none">
+          <label
+            htmlFor={inputId}
+            className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 select-none"
+          >
             {label}
             {required && <span className="text-rose-500 font-bold" aria-hidden="true">*</span>}
           </label>
         )}
         <div className="relative flex items-center">
           {leftElement && (
-            <div className="absolute left-3 flex items-center pointer-events-none text-navy-400">
+            <div className="absolute left-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
               {leftElement}
             </div>
           )}
@@ -54,22 +57,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={!!error}
             aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
             className={cn(
-              'w-full min-h-[42px] px-3.5 py-2 text-sm rounded-lg border bg-white text-navy-900 transition-colors',
-              'placeholder:text-navy-400',
-              'focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-medical-500',
-              'disabled:bg-navy-50 disabled:text-navy-400 disabled:cursor-not-allowed',
+              'w-full min-h-[42px] px-3.5 py-2 text-sm rounded-lg border bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors',
+              'placeholder:text-slate-400 dark:placeholder:text-slate-500',
+              'focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-medical-500 dark:focus:ring-medical-500 dark:focus:border-medical-500',
+              'disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed',
               leftElement ? 'pl-10' : '',
               rightElement || isLoading ? 'pr-10' : '',
               error
-                ? 'border-rose-400 focus:ring-rose-500 focus:border-rose-500 text-rose-900'
-                : 'border-navy-200 hover:border-navy-300',
+                ? 'border-rose-400 dark:border-rose-500 focus:ring-rose-500 focus:border-rose-500 text-rose-900 dark:text-rose-200'
+                : 'border-slate-300/80 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600',
               className
             )}
             {...props}
           />
           {isLoading && (
-            <div className="absolute right-3 flex items-center pointer-events-none text-navy-400">
-              <Loader2 className="w-4 h-4 animate-spin text-medical-600" />
+            <div className="absolute right-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin text-medical-600 dark:text-medical-400" />
             </div>
           )}
           {!isLoading && rightElement && (
@@ -79,12 +82,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p id={`${inputId}-error`} className="text-xs font-medium text-rose-600 mt-0.5" role="alert">
+          <p id={`${inputId}-error`} className="text-xs font-medium text-rose-600 dark:text-rose-400 mt-0.5" role="alert">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={`${inputId}-helper`} className="text-xs text-navy-500 mt-0.5">
+          <p id={`${inputId}-helper`} className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {helperText}
           </p>
         )}

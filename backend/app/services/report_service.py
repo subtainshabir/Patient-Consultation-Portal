@@ -552,8 +552,11 @@ def _build_vitals_section(consultation: Consultation, styles: dict) -> Optional[
     if vitals.nihss_score is not None:
         items.append(("NIHSS Score", f"{vitals.nihss_score}"))
 
-    if getattr(vitals, "fall_risk_assessment", None):
-        items.append(("Fall Risk", str(vitals.fall_risk_assessment)))
+    fall_risk = getattr(vitals, "fall_risk_status", None) or getattr(vitals, "fall_risk_assessment", None)
+    if fall_risk:
+        notes = getattr(vitals, "fall_risk_notes", None)
+        fr_str = f"{fall_risk} ({notes})" if notes else str(fall_risk)
+        items.append(("Fall Risk", fr_str))
 
     if not items:
         return None

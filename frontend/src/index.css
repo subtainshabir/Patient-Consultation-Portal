@@ -4,8 +4,37 @@
 
 @layer base {
   :root {
-    --color-primary: #0D9488;
-    --color-primary-hover: #0F766E;
+    --primary: #0D9488;
+    --primary-hover: #0F766E;
+    --secondary: #3B82F6;
+    --background: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-elevated: #FFFFFF;
+    --border: #E2E8F0;
+    --border-subtle: #F1F5F9;
+    --text: #0F172A;
+    --text-muted: #64748B;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #3B82F6;
+  }
+
+  html.dark {
+    --primary: #14B8A6;
+    --primary-hover: #2DD4BF;
+    --secondary: #60A5FA;
+    --background: #0B101B;
+    --surface: #111827;
+    --surface-elevated: #1F2937;
+    --border: #374151;
+    --border-subtle: #1F2937;
+    --text: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --success: #34D399;
+    --warning: #FBBF24;
+    --danger: #F87171;
+    --info: #60A5FA;
   }
 
   html {
@@ -17,6 +46,9 @@
   body {
     min-height: 100vh;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: var(--background);
+    color: var(--text);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Custom subtle scrollbar */
@@ -34,10 +66,16 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #94A3B8;
   }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #374151;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #4B5563;
+  }
 
   /* Focus ring accessibility */
   *:focus-visible {
-    outline: 2px solid #0D9488;
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 }

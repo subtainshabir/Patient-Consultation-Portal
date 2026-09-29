@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Stethoscope } from 'lucide-react';
 
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute } from './PublicRoute';
@@ -8,11 +7,15 @@ import { AdminRoute } from './AdminRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
+import { useAuth } from '../hooks/useAuth';
 
 import { LoginPage } from '../pages/LoginPage';
-import { DashboardPage } from '../pages/DashboardPage';
-import { PlaceholderModulePage } from '../pages/PlaceholderModulePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+
+// Role-Specific Dashboards
+import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
+import { DoctorDashboardPage } from '../pages/doctor/DoctorDashboardPage';
+import { StaffDashboardPage } from '../pages/staff/StaffDashboardPage';
 
 // Patient & Consultation Pages
 import { PatientListPage } from '../pages/patients/PatientListPage';
@@ -21,9 +24,9 @@ import { PatientProfilePage } from '../pages/patients/PatientProfilePage';
 import { EditPatientPage } from '../pages/patients/EditPatientPage';
 import { NewConsultationPage } from '../pages/consultations/NewConsultationPage';
 import { ConsultationDetailPage } from '../pages/consultations/ConsultationDetailPage';
+import { ConsultationsListPage } from '../pages/consultations/ConsultationsListPage';
 
-// Phase 9: Admin Portal Pages
-import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
+// Admin Portal Pages
 import { AdminSymptomsPage } from '../pages/admin/AdminSymptomsPage';
 import { AdminPatientStatesPage } from '../pages/admin/AdminPatientStatesPage';
 import { AdminMedicinesPage } from '../pages/admin/AdminMedicinesPage';
@@ -34,14 +37,45 @@ import { AdminDiagnosticTestsPage } from '../pages/admin/AdminDiagnosticTestsPag
 import { AdminNeuroExamPage } from '../pages/admin/AdminNeuroExamPage';
 import { AdminFollowUpsPage } from '../pages/admin/AdminFollowUpsPage';
 import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
+import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
+import { SetupAdminPage } from '../pages/SetupAdminPage';
+
+/**
+ * Automatically dispatches authenticated users to their specific role dashboard
+ */
+const RoleDashboardRedirect: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-navy-50 flex items-center justify-center p-6">
+        <div className="w-10 h-10 border-4 border-medical-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if (user.role === 'STAFF') {
+    return <Navigate to="/staff/dashboard" replace />;
+  }
+
+  return <Navigate to="/doctor/dashboard" replace />;
+};
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Root redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Root redirect to role-specific dashboard */}
+      <Route path="/" element={<RoleDashboardRedirect />} />
 
-      {/* Public Authentication Route */}
+      {/* Public Authentication & Setup Routes */}
       <Route element={<AuthLayout />}>
         <Route
           path="/login"
@@ -51,9 +85,17 @@ export const AppRoutes: React.FC = () => {
             </PublicRoute>
           }
         />
+        <Route
+          path="/setup"
+          element={
+            <PublicRoute>
+              <SetupAdminPage />
+            </PublicRoute>
+          }
+        />
       </Route>
 
-      {/* ─── Doctor-Facing Application Routes (Protected) ─── */}
+      {/* ─── Role-Based Dashboards & Outpatient/Doctor Workspaces ─── */}
       <Route
         element={
           <ProtectedRoute>
@@ -61,47 +103,90 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* Generic /dashboard redirects to active user's role-specific dashboard */}
+        <Route path="/dashboard" element={<RoleDashboardRedirect />} />
 
-        {/* Patient Management Routes */}
+        {/* Doctor Dashboard (Strictly restricted to DOCTOR & ADMIN; STAFF gets 403 Access Denied) */}
+        <Route
+          path="/doctor/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <DoctorDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Staff Dashboard (Restricted to STAFF & ADMIN; DOCTOR gets 403 Access Denied) */}
+        <Route
+          path="/staff/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['STAFF', 'ADMIN']}>
+              <StaffDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Patient Management Routes (Accessible by Staff, Doctor, and Admin) */}
         <Route path="/patients" element={<PatientListPage />} />
         <Route path="/patients/new" element={<RegisterPatientPage />} />
         <Route path="/patients/:patientId" element={<PatientProfilePage />} />
         <Route path="/patients/:patientId/edit" element={<EditPatientPage />} />
-        <Route
-          path="/patients/:patientId/consultation/new"
-          element={<NewConsultationPage />}
-        />
-        <Route
-          path="/patients/:patientId/consultation/:consultationId"
-          element={<ConsultationDetailPage />}
-        />
-        <Route
-          path="/patients/:patientId/consultations/:consultationId"
-          element={<ConsultationDetailPage />}
-        />
-        <Route
-          path="/patients/:patientId/consultation/:consultationId/edit"
-          element={<NewConsultationPage />}
-        />
 
-        {/* Consultations Module */}
+        {/* Clinical Consultations Routes (Restricted to DOCTOR & ADMIN; Staff forbidden) */}
         <Route
           path="/consultations"
           element={
-            <PlaceholderModulePage
-              title="Clinical Consultations & Prescriptions"
-              subtitle="Structured consultation recordings, vitals, Urdu prescription generator, and follow-ups."
-              targetPhase="Phase 4"
-              icon={Stethoscope}
-              plannedFeatures={[
-                'Vital signs recording (BP, Pulse, Weight, Blood Glucose, SpO2)',
-                'Chief complaints & symptoms picker with Urdu translation',
-                'Structured neurological examination matrix',
-                'Prescription builder with Urdu dosage, frequency, and instructions',
-                'A4 professional prescription PDF generator and print layout',
-              ]}
-            />
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <ConsultationsListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultation/new"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <NewConsultationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultations/new"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <NewConsultationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultation/:consultationId"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <ConsultationDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultations/:consultationId"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <ConsultationDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultation/:consultationId/edit"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <NewConsultationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients/:patientId/consultations/:consultationId/edit"
+          element={
+            <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}>
+              <NewConsultationPage />
+            </ProtectedRoute>
           }
         />
 
@@ -128,7 +213,7 @@ export const AppRoutes: React.FC = () => {
         />
       </Route>
 
-      {/* ─── Phase 9: Protected Admin Portal Routes ─── */}
+      {/* ─── Protected Admin Portal Routes (ADMIN ONLY) ─── */}
       <Route
         path="/admin"
         element={
@@ -139,6 +224,7 @@ export const AppRoutes: React.FC = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
         <Route path="symptoms" element={<AdminSymptomsPage />} />
         <Route path="patient-states" element={<AdminPatientStatesPage />} />
         <Route path="medicines" element={<AdminMedicinesPage />} />

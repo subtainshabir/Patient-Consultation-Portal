@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,7 @@ import { Eye, EyeOff, Lock, User as UserIcon, ShieldAlert, Award, MapPin, Activi
 
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { authService } from '../services/authService';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { BrandLogo } from '../components/common/BrandLogo';
@@ -36,10 +37,28 @@ export const LoginPage: React.FC = () => {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
+  // Section 2: Check if initial administrator setup is required
+  useEffect(() => {
+    let isMounted = true;
+    async function checkSetup() {
+      try {
+        const res = await authService.getSetupStatus();
+        if (res.setup_required && isMounted) {
+          navigate('/setup', { replace: true });
+        }
+      } catch {
+        // Fallback to normal login screen if check fails
+      }
+    }
+    checkSetup();
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -52,25 +71,25 @@ export const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
     try {
-      await login(data);
+      const loggedInUser = await login(data);
       success('Authentication successful. Welcome to the portal.', 'Login Successful');
-      navigate(from, { replace: true });
+
+      // Section 5: Redirect according to the user's role
+      if (loggedInUser.role === 'ADMIN') {
+        navigate(from && from !== '/dashboard' && from !== '/login' ? from : '/admin/dashboard', { replace: true });
+      } else if (loggedInUser.role === 'STAFF') {
+        navigate(from && from !== '/dashboard' && from !== '/login' ? from : '/staff/dashboard', { replace: true });
+      } else {
+        navigate(from && from !== '/dashboard' && from !== '/login' ? from : '/doctor/dashboard', { replace: true });
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        // Generic message according to Section 14 to avoid user enumeration
         setAuthError(err.message || 'Invalid username or password.');
       } else {
         setAuthError('Invalid username or password.');
       }
       toastError('Unable to sign in. Please verify your credentials.', 'Authentication Failed');
     }
-  };
-
-  // Helper for quick testing with seed accounts
-  const fillCredentials = (user: string, pass: string) => {
-    setValue('username_or_email', user, { shouldValidate: true });
-    setValue('password', pass, { shouldValidate: true });
-    setAuthError(null);
   };
 
   return (
@@ -94,13 +113,13 @@ export const LoginPage: React.FC = () => {
             <div className="mt-8 sm:mt-12 space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-medical-500/20 border border-medical-400/30 text-medical-200 text-xs font-semibold uppercase tracking-wider">
                 <Activity className="w-3.5 h-3.5" />
-                Specialized Neurology Practice
+                Specialized Clinical Practice
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight text-white">
                 Clinical Consultation & Prescription Management
               </h2>
               <p className="text-sm text-medical-100/90 leading-relaxed">
-                A dedicated, secure platform designed specifically for Dr. Rauf's outpatient neurology clinic in Rawalpindi.
+                A dedicated, secure platform designed for outpatient consultation, neurological examination, and prescription documentation.
               </p>
             </div>
           </div>
@@ -108,11 +127,11 @@ export const LoginPage: React.FC = () => {
           <div className="mt-8 pt-6 border-t border-medical-700/50 space-y-2 relative z-10">
             <div className="flex items-center gap-2 text-xs text-medical-100">
               <Award className="w-4 h-4 text-medical-300 shrink-0" />
-              <span>Dr. Rauf — Consultant Neurologist</span>
+              <span>Consultant Physician & Clinical Personnel</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-medical-100">
               <MapPin className="w-4 h-4 text-medical-300 shrink-0" />
-              <span>Rawalpindi, Pakistan</span>
+              <span>Outpatient Medical Consultation Center</span>
             </div>
           </div>
         </div>
@@ -122,7 +141,7 @@ export const LoginPage: React.FC = () => {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-navy-950 tracking-tight">Staff Sign In</h1>
             <p className="text-sm text-navy-500 mt-1">
-              Authorized clinical personnel only. Please sign in with your clinic credentials.
+              Authorized personnel only. Please sign in with your portal credentials.
             </p>
           </div>
 
@@ -145,7 +164,7 @@ export const LoginPage: React.FC = () => {
             <Input
               label="Username or Email"
               id="username_or_email"
-              placeholder="e.g. drrauf or doctor@neurology.pk"
+              placeholder="Enter your username or email"
               required
               leftElement={<UserIcon className="w-4 h-4" />}
               error={errors.username_or_email?.message}
@@ -175,7 +194,7 @@ export const LoginPage: React.FC = () => {
               {...register('password')}
             />
 
-            {/* Submit Button (Section 15) */}
+            {/* Submit Button */}
             <div className="pt-2">
               <Button
                 type="submit"
@@ -188,41 +207,9 @@ export const LoginPage: React.FC = () => {
               </Button>
             </div>
           </form>
-
-          {/* Quick Demo Credentials Assistant (for test evaluation) */}
-          <div className="mt-8 pt-5 border-t border-navy-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-navy-500 mb-2">
-              Testing Credentials (Phase 1 Seeding):
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => fillCredentials('drrauf', 'Doctor@123')}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-medical-50 text-medical-800 hover:bg-medical-100 border border-medical-200 transition-colors"
-                title="Fill Doctor credentials"
-              >
-                Doctor: drrauf
-              </button>
-              <button
-                type="button"
-                onClick={() => fillCredentials('admin', 'Admin@123')}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-navy-100 text-navy-800 hover:bg-navy-200 border border-navy-200 transition-colors"
-                title="Fill Admin credentials"
-              >
-                Admin: admin
-              </button>
-              <button
-                type="button"
-                onClick={() => fillCredentials('staff', 'Staff@123')}
-                className="px-2.5 py-1 text-xs font-medium rounded-lg bg-navy-100 text-navy-800 hover:bg-navy-200 border border-navy-200 transition-colors"
-                title="Fill Staff credentials"
-              >
-                Staff: staff
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 };
+

@@ -3,6 +3,7 @@ import type {
   Consultation,
   ConsultationCreatePayload,
   ConsultationSummary,
+  ConsultationListResponse,
   ConsultationReport,
   ServerDateResponse,
 } from '../types/consultation';
@@ -60,5 +61,17 @@ export const consultationService = {
 
   async listConsultationReports(consultationId: string): Promise<ConsultationReport[]> {
     return api.get<ConsultationReport[]>(`/consultations/${consultationId}/reports`);
+  },
+
+  async getAllConsultations(params?: {
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<ConsultationListResponse> {
+    const search = params?.search ? encodeURIComponent(params.search) : '';
+    const page = params?.page || 1;
+    const pageSize = params?.page_size || 20;
+    const query = `?search=${search}&page=${page}&page_size=${pageSize}`;
+    return api.get<ConsultationListResponse>(`/consultations${query}`);
   },
 };

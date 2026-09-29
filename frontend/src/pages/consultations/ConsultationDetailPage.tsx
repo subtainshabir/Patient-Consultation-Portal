@@ -95,6 +95,33 @@ export const ConsultationDetailPage: React.FC = () => {
     );
   }
 
+  if (
+    patientId &&
+    consultation.patient?.patient_id !== patientId &&
+    String(consultation.patient_id) !== String(patientId)
+  ) {
+    return (
+      <div className="max-w-md mx-auto my-12 text-center p-4">
+        <Card className="p-8">
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 border border-rose-200">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-navy-950 mb-2">Patient Mismatch</h2>
+          <p className="text-sm text-navy-600 mb-6">
+            Consultation {consultation.consultation_id} does not belong to patient {patientId}.
+          </p>
+          <Button
+            variant="primary"
+            onClick={() => navigate(`/patients/${patientId}`)}
+            leftIcon={<ArrowLeft className="w-4 h-4" />}
+          >
+            Back to Patient Profile
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   const patientObj = consultation.patient;
   const pId = patientObj?.patient_id || patientId;
   const formattedDate = new Date(consultation.consultation_date).toLocaleDateString('en-GB', {

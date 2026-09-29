@@ -18,9 +18,11 @@ import {
   ShieldCheck,
   ExternalLink,
   ChevronRight,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 import { cn } from '../utils/cn';
 
 interface AdminNavItem {
@@ -112,7 +114,22 @@ export const AdminLayout: React.FC = () => {
               <LayoutDashboard className="w-4 h-4 text-emerald-400" />
               <span>Admin Dashboard</span>
             </NavLink>
+            <NavLink
+              to="/admin/users"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-all duration-150',
+                  isActive
+                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                )
+              }
+            >
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span>User Management</span>
+            </NavLink>
           </div>
+
 
           {/* Master Data Dropdown Management */}
           <div className="space-y-1">
@@ -261,7 +278,24 @@ export const AdminLayout: React.FC = () => {
                 <span>Admin Dashboard</span>
               </NavLink>
 
+              <NavLink
+                to="/admin/users"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium transition-colors',
+                    isActive
+                      ? 'bg-emerald-500/20 text-emerald-300 font-semibold'
+                      : 'text-slate-300 hover:bg-slate-800'
+                  )
+                }
+              >
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>User Management</span>
+              </NavLink>
+
               <div className="pt-2 border-t border-slate-800 space-y-1">
+
                 <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Master Data Dropdowns
                 </p>
@@ -330,40 +364,43 @@ export const AdminLayout: React.FC = () => {
       )}
 
       {/* ─── MAIN CONTENT AREA ─── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs px-4 sm:px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-xs px-4 sm:px-6 py-3 flex items-center justify-between transition-colors">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg md:hidden touch-target"
+              className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg md:hidden touch-target"
               aria-label="Open navigation drawer"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
-              <span className="font-semibold text-slate-900">Admin Portal</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">Admin Portal</span>
               <span>/</span>
-              <span className="capitalize text-slate-600 font-medium">
+              <span className="capitalize text-slate-600 dark:text-slate-300 font-medium">
                 {location.pathname.replace('/admin/', '').replace('/admin', 'Dashboard').replace('-', ' ')}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Global Theme Toggle */}
+            <ThemeToggle />
+
             {/* Quick Switch to Doctor Workspace */}
             <button
               onClick={() => navigate('/dashboard')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-navy-700 bg-navy-50 hover:bg-navy-100 border border-navy-200/80 rounded-lg transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
             >
-              <Stethoscope className="w-3.5 h-3.5 text-medical-600" />
+              <Stethoscope className="w-3.5 h-3.5 text-medical-600 dark:text-medical-400" />
               <span>Doctor Portal</span>
             </button>
 
             {/* Admin Badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Administrator</span>
             </div>
           </div>

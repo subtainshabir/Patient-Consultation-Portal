@@ -30,7 +30,7 @@ export const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
           size="sm"
           onClick={onBack}
           leftIcon={<ArrowLeft className="w-4 h-4" />}
-          className="border-navy-200 text-navy-700 hover:bg-navy-50"
+          className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
           id="consultation-back-btn"
         >
           Back to Patient
@@ -41,13 +41,13 @@ export const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
             variant="outline"
             size="sm"
             onClick={onOpenHistory}
-            leftIcon={<History className="w-4 h-4 text-medical-600" />}
-            className="border-medical-200 bg-medical-50/50 text-medical-800 hover:bg-medical-100 font-medium"
+            leftIcon={<History className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+            className="border-primary-200 dark:border-primary-800/80 bg-primary-50/50 dark:bg-primary-950/40 text-primary-800 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/60 font-medium"
             id="view-medical-history-btn"
           >
             View Medical History
             {historyCount > 0 && (
-              <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-medical-600 text-white">
+              <span className="ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary-600 text-white">
                 {historyCount}
               </span>
             )}
@@ -57,8 +57,8 @@ export const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
             variant="ghost"
             size="sm"
             onClick={onViewPatient}
-            rightIcon={<ExternalLink className="w-3.5 h-3.5 text-navy-400" />}
-            className="text-navy-600 hover:text-navy-900"
+            rightIcon={<ExternalLink className="w-3.5 h-3.5 text-slate-400" />}
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
             id="view-patient-profile-btn"
           >
             View Patient
@@ -67,30 +67,30 @@ export const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
       </div>
 
       {/* Patient Information & Consultation Date Card */}
-      <Card className="border-medical-200 bg-gradient-to-r from-medical-50/60 via-white to-navy-50/50 shadow-sm">
+      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Left: Patient Details */}
             <div className="flex items-start sm:items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-medical-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-primary-600 dark:bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <User className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-medical-100/80 text-medical-900 border border-medical-200">
+                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-primary-50 dark:bg-primary-950/60 text-primary-800 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60">
                     {patient.patient_id}
                   </span>
-                  <h1 className="text-base sm:text-lg font-bold text-navy-950">
+                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
                     {patient.full_name}
                   </h1>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600 mt-1 font-medium">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
                   <span>{patient.age} years</span>
-                  <span className="text-navy-300">•</span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
                   <span>{patient.gender}</span>
-                  <span className="text-navy-300">•</span>
-                  <span className="inline-flex items-center gap-1 font-mono text-navy-700">
-                    <Phone className="w-3 h-3 text-navy-400" />
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="inline-flex items-center gap-1 font-mono text-slate-700 dark:text-slate-300">
+                    <Phone className="w-3 h-3 text-slate-400" />
                     {patient.mobile_number}
                   </span>
                 </div>
@@ -98,15 +98,15 @@ export const ConsultationHeader: React.FC<ConsultationHeaderProps> = ({
             </div>
 
             {/* Right: Authoritative Consultation Date */}
-            <div className="flex items-center gap-3 self-start md:self-auto bg-white/90 px-3.5 py-2 rounded-xl border border-navy-200/80 shadow-xs">
-              <div className="w-8 h-8 rounded-lg bg-navy-100 text-navy-700 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4 text-medical-600" />
+            <div className="flex items-center gap-3 self-start md:self-auto bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">
+                <Calendar className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-navy-400">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
                   Consultation Date
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-navy-900">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                   {serverDateFormatted || 'Loading server date...'}
                 </div>
               </div>

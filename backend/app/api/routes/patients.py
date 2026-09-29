@@ -14,7 +14,7 @@ from app.schemas.patient import (
     PatientStatusUpdate,
     DuplicatePatientWarning,
 )
-from app.schemas.consultation import ConsultationSummaryResponse
+from app.schemas.consultation import ConsultationSummaryResponse, ConsultationResponse
 from app.services.patient_service import (
     create_patient,
     get_patient_by_patient_id,
@@ -27,6 +27,7 @@ from app.services.patient_service import (
 from app.services.consultation_service import (
     list_patient_consultations,
     build_consultation_summary,
+    get_consultation_by_id,
 )
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
@@ -207,4 +208,30 @@ def get_patient_consultations(
         has_subsequent = idx > 0
         summaries.append(build_consultation_summary(c, has_subsequent=has_subsequent))
     return summaries
+
+
+@router.get("/{patient_id}/consultations/{consultation_id}", response_model=ConsultationResponse)
+def get_patient_consultation_detail(
+    patient_id: str,
+    consultation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get detailed information for a specific consultation belonging to this patient.
+    Verifies that the consultation belongs to the specified patient.
+    """
+    patient = get_patient_by_patient_id(db, patient_id)
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID '{patient_id}' not found."
+        )
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation or consultation.patient_id != patient.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found for patient '{patient_id}'."
+        )
+    return ConsultationResponse.model_validate(consultation)
 
