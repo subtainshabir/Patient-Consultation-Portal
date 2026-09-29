@@ -1,13 +1,12 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import {
-  Stethoscope,
-  Settings as SettingsIcon,
-} from 'lucide-react';
+import { Stethoscope } from 'lucide-react';
 
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute } from './PublicRoute';
+import { AdminRoute } from './AdminRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 
 import { LoginPage } from '../pages/LoginPage';
@@ -15,7 +14,7 @@ import { DashboardPage } from '../pages/DashboardPage';
 import { PlaceholderModulePage } from '../pages/PlaceholderModulePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
-// Phase 2 Patient Management Pages
+// Patient & Consultation Pages
 import { PatientListPage } from '../pages/patients/PatientListPage';
 import { RegisterPatientPage } from '../pages/patients/RegisterPatientPage';
 import { PatientProfilePage } from '../pages/patients/PatientProfilePage';
@@ -23,8 +22,18 @@ import { EditPatientPage } from '../pages/patients/EditPatientPage';
 import { NewConsultationPage } from '../pages/consultations/NewConsultationPage';
 import { ConsultationDetailPage } from '../pages/consultations/ConsultationDetailPage';
 
-// Phase 3 Master Data Management
-import { MasterDataAdminPage } from '../pages/admin/MasterDataAdminPage';
+// Phase 9: Admin Portal Pages
+import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
+import { AdminSymptomsPage } from '../pages/admin/AdminSymptomsPage';
+import { AdminPatientStatesPage } from '../pages/admin/AdminPatientStatesPage';
+import { AdminMedicinesPage } from '../pages/admin/AdminMedicinesPage';
+import { AdminFrequenciesPage } from '../pages/admin/AdminFrequenciesPage';
+import { AdminDosagesPage } from '../pages/admin/AdminDosagesPage';
+import { AdminInstructionsPage } from '../pages/admin/AdminInstructionsPage';
+import { AdminDiagnosticTestsPage } from '../pages/admin/AdminDiagnosticTestsPage';
+import { AdminNeuroExamPage } from '../pages/admin/AdminNeuroExamPage';
+import { AdminFollowUpsPage } from '../pages/admin/AdminFollowUpsPage';
+import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -44,7 +53,7 @@ export const AppRoutes: React.FC = () => {
         />
       </Route>
 
-      {/* Authenticated Application Routes (Protected) */}
+      {/* ─── Doctor-Facing Application Routes (Protected) ─── */}
       <Route
         element={
           <ProtectedRoute>
@@ -54,7 +63,7 @@ export const AppRoutes: React.FC = () => {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Phase 2: Patient Management Routes */}
+        {/* Patient Management Routes */}
         <Route path="/patients" element={<PatientListPage />} />
         <Route path="/patients/new" element={<RegisterPatientPage />} />
         <Route path="/patients/:patientId" element={<PatientProfilePage />} />
@@ -76,15 +85,14 @@ export const AppRoutes: React.FC = () => {
           element={<NewConsultationPage />}
         />
 
-
-        {/* Consultations Module (Future Phase 3) */}
+        {/* Consultations Module */}
         <Route
           path="/consultations"
           element={
             <PlaceholderModulePage
               title="Clinical Consultations & Prescriptions"
               subtitle="Structured consultation recordings, vitals, Urdu prescription generator, and follow-ups."
-              targetPhase="Phase 3"
+              targetPhase="Phase 4"
               icon={Stethoscope}
               plannedFeatures={[
                 'Vital signs recording (BP, Pulse, Weight, Blood Glucose, SpO2)',
@@ -97,46 +105,54 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Phase 3: Clinical Master Data System */}
-        <Route path="/admin/master-data" element={<MasterDataAdminPage />} />
+        {/* Shortcuts / Redirects to Admin Sections */}
         <Route
           path="/medicines"
-          element={<Navigate to="/admin/master-data?category=medicines" replace />}
+          element={<Navigate to="/admin/medicines" replace />}
         />
         <Route
           path="/symptoms"
-          element={<Navigate to="/admin/master-data?category=symptoms" replace />}
+          element={<Navigate to="/admin/symptoms" replace />}
         />
         <Route
           path="/diagnostic-tests"
-          element={<Navigate to="/admin/master-data?category=diagnostic-tests" replace />}
+          element={<Navigate to="/admin/diagnostic-tests" replace />}
         />
         <Route
           path="/neurological-examination"
-          element={<Navigate to="/admin/master-data?category=neurological-examinations" replace />}
+          element={<Navigate to="/admin/neurological-examinations" replace />}
         />
-
-        {/* Settings Module (Future Phase 5) */}
         <Route
           path="/settings"
-          element={
-            <PlaceholderModulePage
-              title="Clinic & System Settings"
-              subtitle="Clinic configuration, user access administration, prescription templates, and backup management."
-              targetPhase="Phase 5 (Administration)"
-              icon={SettingsIcon}
-              plannedFeatures={[
-                'Clinic details, consultation fee, and doctor timing configuration',
-                'User management (Admin, Doctor, Reception Staff)',
-                'Prescription layout header & footer customizations',
-                'Database backup and audit log viewer',
-              ]}
-            />
-          }
+          element={<Navigate to="/admin/settings" replace />}
         />
       </Route>
 
-      {/* 404 Catch-All Route (Section 59) */}
+      {/* ─── Phase 9: Protected Admin Portal Routes ─── */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboardPage />} />
+        <Route path="symptoms" element={<AdminSymptomsPage />} />
+        <Route path="patient-states" element={<AdminPatientStatesPage />} />
+        <Route path="medicines" element={<AdminMedicinesPage />} />
+        <Route path="frequencies" element={<AdminFrequenciesPage />} />
+        <Route path="dosages" element={<AdminDosagesPage />} />
+        <Route path="instructions" element={<AdminInstructionsPage />} />
+        <Route path="diagnostic-tests" element={<AdminDiagnosticTestsPage />} />
+        <Route path="neurological-examinations" element={<AdminNeuroExamPage />} />
+        <Route path="follow-ups" element={<AdminFollowUpsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="master-data" element={<Navigate to="/admin/dashboard" replace />} />
+      </Route>
+
+      {/* 404 Catch-All Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

@@ -4,12 +4,6 @@ import {
   LayoutDashboard,
   Users,
   Stethoscope,
-  Pill,
-  ClipboardList,
-  FlaskConical,
-  Database,
-  Brain,
-  Settings,
   Menu,
   X,
   Bell,
@@ -17,6 +11,7 @@ import {
   User as UserIcon,
   ChevronDown,
   Shield,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -30,16 +25,10 @@ interface NavItem {
   badge?: string;
 }
 
-const NAVIGATION_ITEMS: NavItem[] = [
+const BASE_NAVIGATION_ITEMS: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Patients', href: '/patients', icon: Users },
-  { name: 'Clinical Master Data', href: '/admin/master-data', icon: Database },
-  { name: 'Consultations', href: '/consultations', icon: Stethoscope, badge: 'Phase 4' },
-  { name: 'Medicines', href: '/medicines', icon: Pill },
-  { name: 'Symptoms', href: '/symptoms', icon: ClipboardList },
-  { name: 'Diagnostic Tests', href: '/diagnostic-tests', icon: FlaskConical },
-  { name: 'Neurological Examination', href: '/neurological-examination', icon: Brain },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Consultations', href: '/consultations', icon: Stethoscope },
 ];
 
 export const DashboardLayout: React.FC = () => {
@@ -51,6 +40,19 @@ export const DashboardLayout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  const navigationItems = React.useMemo(() => {
+    const items = [...BASE_NAVIGATION_ITEMS];
+    if (user?.role === 'ADMIN') {
+      items.push({
+        name: 'Admin Portal',
+        href: '/admin',
+        icon: Shield,
+        badge: 'Admin',
+      });
+    }
+    return items;
+  }, [user?.role]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -112,7 +114,7 @@ export const DashboardLayout: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="flex-1 p-3 overflow-y-auto space-y-1">
-          {NAVIGATION_ITEMS.map((item) => {
+          {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -216,7 +218,7 @@ export const DashboardLayout: React.FC = () => {
 
             {/* Nav Links */}
             <nav className="flex-1 p-3 overflow-y-auto space-y-1">
-              {NAVIGATION_ITEMS.map((item) => {
+              {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink

@@ -21,6 +21,7 @@ from app.models.consultation import (
     PrescriptionItem,
     ConsultationReport,
 )
+from app.models.settings import ClinicSetting
 
 __all__ = [
     "Base",
@@ -44,5 +45,6 @@ __all__ = [
     "ConsultationDiagnosticTest",
     "PrescriptionItem",
     "ConsultationReport",
+    "ClinicSetting",
 ]
 

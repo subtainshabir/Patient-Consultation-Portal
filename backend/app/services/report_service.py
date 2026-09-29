@@ -32,6 +32,7 @@ from app.models.consultation import (
 )
 from app.models.patient import Patient
 from app.models.user import User
+from app.models.settings import ClinicSetting
 
 
 # ==========================================
@@ -95,6 +96,10 @@ class NumberedCanvas(canvas.Canvas):
     Two-pass canvas that counts the total number of pages and draws
     a professional running footer with 'Page X of Y' on every page.
     """
+    clinic_name = settings.CLINIC_NAME
+    clinic_phone = settings.CLINIC_PHONE
+    clinic_email = settings.CLINIC_EMAIL
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
@@ -121,7 +126,7 @@ class NumberedCanvas(canvas.Canvas):
         self.line(36, 38, 559, 38)
 
         # Footer Left: Clinic EMR info
-        clinic_info = f"Printed from {settings.CLINIC_NAME} EMR | Contact: {settings.CLINIC_PHONE} | {settings.CLINIC_EMAIL}"
+        clinic_info = f"Printed from {self.clinic_name} EMR | Contact: {self.clinic_phone} | {self.clinic_email}"
         self.setFillColor(colors.HexColor("#64748B"))
         self.drawString(36, 26, clinic_info)
 
@@ -270,29 +275,75 @@ def _get_styles():
     }
 
 
-def _build_clinic_header(styles: dict) -> Table:
+def _build_clinic_header(styles: dict, clinic_cfg=None) -> Table:
     """
     Builds the top Doctor/Clinic header inspired by reference image.
-    Left: Clinic & Doctor info.
+    Left: Clinic & Doctor info (with optional Logo).
     Right: Contact Phone, Email, Address.
     """
-    doc_urdu = format_bilingual(settings.DOCTOR_NAME_URDU)
-    clinic_urdu = format_bilingual(settings.CLINIC_NAME_URDU)
-    specialization_urdu = format_bilingual(settings.DOCTOR_SPECIALIZATION_URDU)
+    c_name = getattr(clinic_cfg, "clinic_name", settings.CLINIC_NAME)
+    c_name_urdu = getattr(clinic_cfg, "clinic_name_urdu", settings.CLINIC_NAME_URDU)
+    c_subtitle = getattr(clinic_cfg, "clinic_subtitle", settings.CLINIC_SUBTITLE)
+    d_name = getattr(clinic_cfg, "doctor_name", settings.DOCTOR_NAME)
+    d_name_urdu = getattr(clinic_cfg, "doctor_name_urdu", settings.DOCTOR_NAME_URDU)
+    d_spec = getattr(clinic_cfg, "specialization", settings.DOCTOR_SPECIALIZATION)
+    d_spec_urdu = getattr(clinic_cfg, "specialization_urdu", settings.DOCTOR_SPECIALIZATION_URDU)
+    d_qual = getattr(clinic_cfg, "qualifications", settings.DOCTOR_QUALIFICATIONS)
+    reg_no = getattr(clinic_cfg, "registration_no", settings.DOCTOR_REGISTRATION_NO)
+    phone = getattr(clinic_cfg, "clinic_phone", settings.CLINIC_PHONE)
+    email = getattr(clinic_cfg, "clinic_email", settings.CLINIC_EMAIL)
+    address = getattr(clinic_cfg, "clinic_address", settings.CLINIC_ADDRESS)
+    logo_path = getattr(clinic_cfg, "logo_path", settings.CLINIC_LOGO_PATH)
 
-    left_content = [
-        Paragraph(f"<b>{settings.CLINIC_NAME}</b> {f'({clinic_urdu})' if clinic_urdu else ''}", styles["clinic_title"]),
-        Paragraph(f"{settings.CLINIC_SUBTITLE}", styles["clinic_sub"]),
+    doc_urdu = format_bilingual(d_name_urdu)
+    clinic_urdu = format_bilingual(c_name_urdu)
+    specialization_urdu = format_bilingual(d_spec_urdu)
+
+    left_content = []
+
+    # If logo exists, render side-by-side with clinic name
+    if logo_path and os.path.exists(logo_path):
+        try:
+            from reportlab.platypus import Image as RLImage
+            logo_img = RLImage(logo_path, width=42, height=42)
+            brand_box = Table(
+                [[
+                    logo_img,
+                    [
+                        Paragraph(f"<b>{c_name}</b> {f'({clinic_urdu})' if clinic_urdu else ''}", styles["clinic_title"]),
+                        Paragraph(f"{c_subtitle}", styles["clinic_sub"]) if c_subtitle else Paragraph("", styles["clinic_sub"]),
+                    ]
+                ]],
+                colWidths=[48, 282]
+            )
+            brand_box.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]))
+            left_content.append(brand_box)
+        except Exception:
+            left_content.append(Paragraph(f"<b>{c_name}</b> {f'({clinic_urdu})' if clinic_urdu else ''}", styles["clinic_title"]))
+            if c_subtitle:
+                left_content.append(Paragraph(f"{c_subtitle}", styles["clinic_sub"]))
+    else:
+        left_content.append(Paragraph(f"<b>{c_name}</b> {f'({clinic_urdu})' if clinic_urdu else ''}", styles["clinic_title"]))
+        if c_subtitle:
+            left_content.append(Paragraph(f"{c_subtitle}", styles["clinic_sub"]))
+
+    left_content.extend([
         Spacer(1, 4),
-        Paragraph(f"<b>{settings.DOCTOR_NAME}</b> {f'({doc_urdu})' if doc_urdu else ''}", styles["doc_header"]),
-        Paragraph(f"{settings.DOCTOR_SPECIALIZATION} {f'| {specialization_urdu}' if specialization_urdu else ''} — {settings.DOCTOR_QUALIFICATIONS}", styles["doc_sub"]),
-    ]
+        Paragraph(f"<b>{d_name}</b> {f'({doc_urdu})' if doc_urdu else ''}", styles["doc_header"]),
+        Paragraph(f"{d_spec} {f'| {specialization_urdu}' if specialization_urdu else ''} — {d_qual}", styles["doc_sub"]),
+    ])
 
     right_content = [
-        Paragraph(f"<b>Phone:</b> {settings.CLINIC_PHONE}", styles["doc_sub"]),
-        Paragraph(f"<b>Email:</b> {settings.CLINIC_EMAIL}", styles["doc_sub"]),
-        Paragraph(f"<b>Address:</b> {settings.CLINIC_ADDRESS}", styles["doc_sub"]),
-        Paragraph(f"<b>PMC Reg:</b> {settings.DOCTOR_REGISTRATION_NO}", styles["doc_sub"]) if settings.DOCTOR_REGISTRATION_NO else Paragraph("", styles["doc_sub"]),
+        Paragraph(f"<b>Phone:</b> {phone}", styles["doc_sub"]),
+        Paragraph(f"<b>Email:</b> {email}", styles["doc_sub"]),
+        Paragraph(f"<b>Address:</b> {address}", styles["doc_sub"]),
+        Paragraph(f"<b>PMC Reg:</b> {reg_no}", styles["doc_sub"]) if reg_no else Paragraph("", styles["doc_sub"]),
     ]
 
     header_table = Table(
@@ -818,12 +869,14 @@ def _build_follow_up_section(consultation: Consultation, styles: dict) -> Option
     return elements
 
 
-def _build_signature_block(consultation: Consultation, styles: dict) -> Table:
+def _build_signature_block(consultation: Consultation, styles: dict, clinic_cfg=None) -> Table:
     """
     Builds the Doctor's Signature & Validity block.
     """
-    doc_name = consultation.doctor.full_name if consultation.doctor else settings.DOCTOR_NAME
-    doc_title = settings.DOCTOR_SPECIALIZATION
+    default_doc = getattr(clinic_cfg, "doctor_name", settings.DOCTOR_NAME)
+    default_spec = getattr(clinic_cfg, "specialization", settings.DOCTOR_SPECIALIZATION)
+    doc_name = consultation.doctor.full_name if consultation.doctor else default_doc
+    doc_title = default_spec
 
     validity_p = Paragraph("<b>VALID FOR 1 MONTH FROM CONSULTATION DATE</b>", styles["doc_sub"])
     sig_content = [
@@ -852,12 +905,19 @@ def _build_signature_block(consultation: Consultation, styles: dict) -> Table:
 def compile_prescription_pdf(
     consultation: Consultation,
     output_path: str,
+    clinic_cfg=None,
 ) -> int:
     """
     Compiles the complete A4 prescription report to output_path using ReportLab Platypus.
     Returns the file size in bytes.
     """
     styles = _get_styles()
+
+    # Configure Running Footer EMR details from clinic configuration
+    if clinic_cfg:
+        NumberedCanvas.clinic_name = getattr(clinic_cfg, "clinic_name", settings.CLINIC_NAME)
+        NumberedCanvas.clinic_phone = getattr(clinic_cfg, "clinic_phone", settings.CLINIC_PHONE)
+        NumberedCanvas.clinic_email = getattr(clinic_cfg, "clinic_email", settings.CLINIC_EMAIL)
 
     # Document margins: 36 pt (0.5 inch) left/right/top/bottom
     doc = SimpleDocTemplate(
@@ -872,7 +932,7 @@ def compile_prescription_pdf(
     story = []
 
     # 1. Clinic & Doctor Header
-    story.append(_build_clinic_header(styles))
+    story.append(_build_clinic_header(styles, clinic_cfg=clinic_cfg))
     story.append(Spacer(1, 4))
 
     # Top visual rule
@@ -932,7 +992,7 @@ def compile_prescription_pdf(
 
     # 11. Signature Block (Kept together to avoid splitting)
     story.append(KeepTogether([
-        _build_signature_block(consultation, styles)
+        _build_signature_block(consultation, styles, clinic_cfg=clinic_cfg)
     ]))
 
     # Build document using NumberedCanvas for true Page X of Y
@@ -994,8 +1054,11 @@ def generate_or_retrieve_report(
         for r in existing_reports:
             r.is_latest = False
 
+    # Fetch latest clinic settings if available
+    clinic_cfg = db.query(ClinicSetting).first()
+
     # Generate PDF file
-    file_size = compile_prescription_pdf(consultation, output_path)
+    file_size = compile_prescription_pdf(consultation, output_path, clinic_cfg=clinic_cfg)
 
     # Unique report ID: RPT-CNS-YYYYMMDD-XXXX-vX
     report_unique_id = f"RPT-{consultation.consultation_id}-v{version}"

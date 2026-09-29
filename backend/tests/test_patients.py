@@ -1,5 +1,6 @@
 import time
 import random
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -223,7 +224,7 @@ def test_unauthenticated_patient_endpoints_rejected():
 
 def test_patient_gender_filter(auth_headers):
     """Verify filtering patients by gender (Section 45)."""
-    unique_suffix = random.randint(1000, 9999)
+    unique_suffix = f"Gnd_{uuid.uuid4().hex[:8]}"
     # Register a female patient
     client.post(
         "/api/patients",

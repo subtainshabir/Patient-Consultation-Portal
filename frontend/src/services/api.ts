@@ -160,4 +160,37 @@ export const api = {
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  upload: async <T>(endpoint: string, formData: FormData): Promise<T> => {
+    const token = tokenStorage.get();
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${BASE_URL}${cleanEndpoint}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    if (!response.ok) {
+      const errData = data as ApiErrorResponse | null;
+      throw new ApiError(
+        errData?.message || `Upload failed with status ${response.status}`,
+        response.status,
+        errData?.error_code,
+        errData?.details
+      );
+    }
+    return data as T;
+  },
 };

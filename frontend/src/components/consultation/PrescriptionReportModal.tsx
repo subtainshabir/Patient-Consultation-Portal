@@ -86,6 +86,16 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
     };
   }, [isOpen, consultationId, report?.version, viewMode]);
 
+  // Manage body class for print styling isolation
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('prescription-report-modal-open');
+      return () => {
+        document.body.classList.remove('prescription-report-modal-open');
+      };
+    }
+  }, [isOpen]);
+
   // 4. Force Regenerate Mutation
   const regenerateMutation = useMutation({
     mutationFn: () => consultationService.generateReport(consultationId!, true),
@@ -117,7 +127,21 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
   // 6. Print handler
   const handlePrint = () => {
-    window.print();
+    const triggerPrint = () => {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'visible';
+      window.print();
+      setTimeout(() => {
+        document.body.style.overflow = prevOverflow;
+      }, 500);
+    };
+
+    if (viewMode === 'pdf') {
+      setViewMode('document');
+      setTimeout(triggerPrint, 150);
+    } else {
+      triggerPrint();
+    }
   };
 
   if (!isOpen) return null;
@@ -127,16 +151,16 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
   const vitals = consultation?.vitals;
   const formattedDate = consultation?.consultation_date
     ? new Date(consultation.consultation_date).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
     : '—';
   const formattedTime = consultation?.consultation_date
     ? new Date(consultation.consultation_date).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+      hour: '2-digit',
+      minute: '2-digit',
+    })
     : '—';
 
   // Check if sections have meaningful data (Strict Dynamic Visibility)
@@ -283,7 +307,7 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
       )}
 
       {/* ─── MODAL BODY: A4 DOCUMENT PREVIEW OR PDF VIEWER ─── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-navy-100/60 flex justify-center">
+      <div className="modal-scroll-body flex-1 overflow-y-auto p-4 sm:p-6 bg-navy-100/60 flex justify-center">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-3 text-navy-500">
             <Clock className="w-8 h-8 animate-spin text-medical-600" />
@@ -305,17 +329,16 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
           </div>
         ) : (
           /* Responsive A4 Document View (matching Reference Image) */
-          <div className="printable-report w-full max-w-[800px] bg-white rounded-xl shadow-xl border border-navy-200/80 p-6 sm:p-8 space-y-4 text-navy-950 font-sans">
-            
+          <div className="printable-report report-container w-full max-w-[800px] bg-white rounded-xl shadow-xl border border-navy-200/80 p-6 sm:p-8 space-y-4 text-navy-950 font-sans">
+
             {/* ─── DOCTOR / CLINIC HEADER (Section 7) ─── */}
-            <div className="flex flex-col sm:flex-row justify-between items-start pb-3 border-b-2 border-navy-900 gap-4">
+            <div className="clinic-header flex flex-col sm:flex-row justify-between items-start pb-3 border-b-2 border-navy-900 gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-black text-[#1B365D] tracking-tight">
                     Dr. Rauf Neurology Clinic
                   </h1>
                   <span className="text-sm font-bold text-[#1B365D] font-serif" dir="rtl">
-                    (ڈاکٹر رؤف نیورولوجی کلینک)
                   </span>
                 </div>
                 <p className="text-[11px] font-semibold tracking-wider uppercase text-navy-500">
@@ -325,7 +348,6 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
                   <p className="font-bold text-navy-900">
                     Dr. Abdul Rauf{' '}
                     <span className="font-serif font-semibold text-navy-700" dir="rtl">
-                      (ڈاکٹر عبد الرؤف)
                     </span>
                   </p>
                   <p className="text-navy-600 text-[11px]">
@@ -362,8 +384,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
             </div>
 
             {/* ─── DOCTOR & PATIENT INFORMATION (Section 10) ─── */}
-            <div className="rounded-lg border border-navy-300 bg-navy-50/40 overflow-hidden text-xs">
-              <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide">
+            <div className="patient-info-table rounded-lg border border-navy-300 bg-navy-50/40 overflow-hidden text-xs">
+              <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide">
                 DOCTOR & PATIENT INFORMATION
               </div>
               <div className="divide-y divide-navy-200">
@@ -422,8 +444,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── SYMPTOMS (Section 11 — Only if populated) ─── */}
             {hasSymptoms && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>SYMPTOMS</span>
                   <span className="font-serif font-medium" dir="rtl">
                     علامات
@@ -456,8 +478,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── VITAL SIGNS (Section 12 — Only if populated) ─── */}
             {hasVitals && vitals && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>VITALS</span>
                   <span className="font-serif font-medium" dir="rtl">
                     وائٹل سائنز
@@ -501,8 +523,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── NEUROLOGICAL EXAMINATION (Section 13 & 14 — Only if populated) ─── */}
             {hasExam && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>NEUROLOGICAL EXAMINATION</span>
                   <span className="font-serif font-medium" dir="rtl">
                     اعصابی معائنہ
@@ -545,15 +567,15 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── DIAGNOSTIC TESTS (Section 15 — Only if populated) ─── */}
             {hasDiagnosticTests && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>DIAGNOSTIC TESTS</span>
                   <span className="font-serif font-medium" dir="rtl">
                     تشخیصی ٹیسٹ
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                  <table className="diagnostic-table w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-navy-100/80 text-navy-900 border-b border-navy-200 text-[11px]">
                         <th className="p-2 w-8">#</th>
@@ -588,8 +610,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── CLINICAL INFORMATION (Section 16 — Only if populated) ─── */}
             {hasClinicalInfo && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>CLINICAL INFORMATION & ADVICE</span>
                   <span className="font-serif font-medium" dir="rtl">
                     طبی معلومات اور مشورہ
@@ -620,15 +642,15 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── PRESCRIPTION TABLE (Section 17 & 18 — Only if populated) ─── */}
             {hasPrescription && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section prescription-section rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>PRESCRIPTION</span>
                   <span className="font-serif font-medium" dir="rtl">
                     تجویز کردہ ادویات
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                  <table className="prescription-table w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-navy-100/80 text-navy-900 border-b border-navy-200 text-[11px]">
                         <th className="p-2.5 w-8">S#</th>
@@ -667,8 +689,8 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
 
             {/* ─── FOLLOW-UP (Section 22 — Only if populated) ─── */}
             {hasFollowUp && (
-              <div className="page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
-                <div className="bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
+              <div className="report-section page-break-inside-avoid rounded-lg border border-navy-300 bg-white overflow-hidden text-xs">
+                <div className="section-banner bg-[#1B365D] text-white px-3 py-1 font-bold text-[11px] tracking-wide flex justify-between items-center">
                   <span>FOLLOW-UP</span>
                   <span className="font-serif font-medium" dir="rtl">
                     فالو اَپ
@@ -706,7 +728,7 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
             )}
 
             {/* ─── DOCTOR'S SIGNATURE & VALIDITY (Section 23) ─── */}
-            <div className="page-break-inside-avoid pt-6 pb-2 flex flex-col sm:flex-row justify-between items-end gap-6 border-t border-navy-200">
+            <div className="signature-block page-break-inside-avoid pt-6 pb-2 flex flex-col sm:flex-row justify-between items-end gap-6 border-t border-navy-200">
               <div className="text-[11px] font-bold text-navy-600">
                 VALID FOR 1 MONTH FROM CONSULTATION DATE
               </div>
@@ -720,7 +742,7 @@ export const PrescriptionReportModal: React.FC<PrescriptionReportModalProps> = (
             </div>
 
             {/* ─── FOOTER (Section 24) ─── */}
-            <div className="pt-3 border-t border-navy-200 text-center text-[10px] text-navy-500 space-y-0.5">
+            <div className="report-footer pt-3 border-t border-navy-200 text-center text-[10px] text-navy-500 space-y-0.5">
               <p>
                 Printed from Dr. Rauf Neurology Clinic EMR System | Contact: 0300-1234567 | drrauf.clinic@gmail.com
               </p>
