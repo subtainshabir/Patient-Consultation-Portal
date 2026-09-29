@@ -8,6 +8,8 @@ import {
   CalendarClock,
   Eye,
   Edit3,
+  FileText,
+  Printer,
 } from 'lucide-react';
 import type { ConsultationSummary } from '../../types/consultation';
 import { Button } from '../ui/Button';
@@ -16,12 +18,14 @@ export interface PatientTimelineProps {
   consultations: ConsultationSummary[];
   onSelectConsultation: (consultationId: string) => void;
   onEditConsultation: (consultationId: string) => void;
+  onViewReport?: (consultationId: string) => void;
 }
 
 export const PatientTimeline: React.FC<PatientTimelineProps> = ({
   consultations,
   onSelectConsultation,
   onEditConsultation,
+  onViewReport,
 }) => {
   if (consultations.length === 0) {
     return null;
@@ -72,6 +76,31 @@ export const PatientTimeline: React.FC<PatientTimelineProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {onViewReport && (
+                    item.has_report ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onViewReport(item.consultation_id)}
+                        leftIcon={<FileText className="w-3.5 h-3.5 text-medical-600" />}
+                        className="text-xs font-semibold text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
+                        title="View stored PDF prescription report"
+                      >
+                        View PDF
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onViewReport(item.consultation_id)}
+                        leftIcon={<Printer className="w-3.5 h-3.5 text-navy-500" />}
+                        className="text-xs text-navy-600 hover:text-navy-950"
+                        title="Generate PDF prescription report"
+                      >
+                        Generate Report
+                      </Button>
+                    )
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

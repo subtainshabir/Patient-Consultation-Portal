@@ -73,6 +73,24 @@ export interface PrescriptionItem {
   updated_at?: string;
 }
 
+export interface ConsultationReport {
+  id: number;
+  report_id: string;
+  consultation_id: number;
+  patient_id: number;
+  file_name: string;
+  storage_path: string;
+  document_type: string;
+  file_size: number;
+  version: number;
+  is_latest: boolean;
+  generated_by_id?: number | null;
+  created_at: string;
+  updated_at: string;
+  download_url?: string;
+  preview_url?: string;
+}
+
 export interface Consultation {
   id: number;
   consultation_id: string; // e.g. CNS-20260929-0001
@@ -102,6 +120,8 @@ export interface Consultation {
   examinations: ConsultationExamination[];
   diagnostic_tests: ConsultationDiagnosticTest[];
   prescriptions?: PrescriptionItem[];
+  reports?: ConsultationReport[];
+  latest_report?: ConsultationReport | null;
 }
 
 export interface ConsultationSummary {
@@ -126,6 +146,11 @@ export interface ConsultationSummary {
   follow_up_instructions?: string | null;
   follow_up_status?: string | null;
   symptoms_summary?: string[];
+  has_report?: boolean;
+  latest_report_id?: string | null;
+  latest_report_version?: number | null;
+  latest_report_file_name?: string | null;
+  latest_report_created_at?: string | null;
   created_at: string;
 }
 

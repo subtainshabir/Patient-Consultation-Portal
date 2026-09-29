@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, ArrowLeft, Eye } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Eye, FileText } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogFooter } from '../ui/Dialog';
 import { Button } from '../ui/Button';
@@ -12,6 +12,7 @@ export interface ConsultationSuccessModalProps {
   consultationDate: string;
   onViewConsultation: () => void;
   onBackToPatient: () => void;
+  onPreviewReport?: () => void;
 }
 
 export const ConsultationSuccessModal: React.FC<ConsultationSuccessModalProps> = ({
@@ -22,6 +23,7 @@ export const ConsultationSuccessModal: React.FC<ConsultationSuccessModalProps> =
   consultationDate,
   onViewConsultation,
   onBackToPatient,
+  onPreviewReport,
 }) => {
   return (
     <Dialog isOpen={isOpen} onClose={onBackToPatient} maxWidth="sm">
@@ -69,16 +71,29 @@ export const ConsultationSuccessModal: React.FC<ConsultationSuccessModalProps> =
           Back to Patient
         </Button>
 
-        <Button
-          variant="primary"
-          size="md"
-          onClick={onViewConsultation}
-          leftIcon={<Eye className="w-4 h-4" />}
-          className="w-full sm:w-auto"
-          id="success-view-consultation-btn"
-        >
-          View Consultation
-        </Button>
+        {onPreviewReport ? (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={onPreviewReport}
+            leftIcon={<FileText className="w-4 h-4" />}
+            className="w-full sm:w-auto font-semibold bg-[#1B365D] hover:bg-navy-900 border-[#1B365D]"
+            id="success-preview-report-btn"
+          >
+            Report & Print
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={onViewConsultation}
+            leftIcon={<Eye className="w-4 h-4" />}
+            className="w-full sm:w-auto"
+            id="success-view-consultation-btn"
+          >
+            View Consultation
+          </Button>
+        )}
       </DialogFooter>
     </Dialog>
   );

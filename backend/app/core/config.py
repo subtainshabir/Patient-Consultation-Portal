@@ -24,6 +24,24 @@ class Settings(BaseSettings):
     USE_SQLITE_DEV_FALLBACK: bool = True
     SQLITE_DB_PATH: str = "./dr_rauf_dev.db"
 
+    # Report & PDF Storage Settings (Phase 8)
+    REPORT_STORAGE_PATH: str = "./storage/reports"
+
+    # Clinic & Doctor Configuration (Clean abstraction for Phase 9)
+    CLINIC_NAME: str = "Dr. Rauf Neurology Clinic"
+    CLINIC_NAME_URDU: str = "ڈاکٹر رؤف نیورولوجی کلینک"
+    CLINIC_SUBTITLE: str = "NEUROLOGY & BRAIN CARE CENTER"
+    CLINIC_PHONE: str = "0300-1234567"
+    CLINIC_EMAIL: str = "drrauf.clinic@gmail.com"
+    CLINIC_ADDRESS: str = "Lahore, Pakistan"
+    DOCTOR_NAME: str = "Dr. Abdul Rauf"
+    DOCTOR_NAME_URDU: str = "ڈاکٹر عبد الرؤف"
+    DOCTOR_SPECIALIZATION: str = "Consultant Neurologist"
+    DOCTOR_SPECIALIZATION_URDU: str = "کنسلٹنٹ نیورولوجسٹ"
+    DOCTOR_QUALIFICATIONS: str = "MBBS, FCPS (Neurology)"
+    DOCTOR_REGISTRATION_NO: str = "PMC 45892-P"
+    CLINIC_LOGO_PATH: str = ""
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",

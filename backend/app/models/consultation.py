@@ -6,6 +6,7 @@ from sqlalchemy import (
     String,
     Text,
     Float,
+    Boolean,
     DateTime,
     Date,
     ForeignKey,
@@ -109,6 +110,12 @@ class Consultation(Base):
         back_populates="consultation",
         cascade="all, delete-orphan",
         order_by="PrescriptionItem.sort_order",
+    )
+    reports = relationship(
+        "ConsultationReport",
+        back_populates="consultation",
+        cascade="all, delete-orphan",
+        order_by="desc(ConsultationReport.version)",
     )
 
     def __repr__(self) -> str:
@@ -342,5 +349,52 @@ class PrescriptionItem(Base):
 
     def __repr__(self) -> str:
         return f"<PrescriptionItem id={self.id} consultation_id={self.consultation_id} medicine='{self.medicine_name}' dosage='{self.dosage}' duration={self.duration_days}>"
+
+
+class ConsultationReport(Base):
+    __tablename__ = "consultation_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(String(50), unique=True, index=True, nullable=False)
+    consultation_id = Column(
+        Integer,
+        ForeignKey("consultations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    patient_id = Column(
+        Integer,
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    file_name = Column(String(255), nullable=False)
+    storage_path = Column(String(500), nullable=False)
+    document_type = Column(String(50), default="Prescription Report", nullable=False)
+    file_size = Column(Integer, default=0, nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    is_latest = Column(Boolean, default=True, nullable=False, index=True)
+
+    generated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    consultation = relationship("Consultation", back_populates="reports")
+    patient = relationship("Patient", foreign_keys=[patient_id])
+    generated_by = relationship("User", foreign_keys=[generated_by_id])
+
+    def __repr__(self) -> str:
+        return f"<ConsultationReport id={self.id} report_id='{self.report_id}' consultation_id={self.consultation_id} version={self.version}>"
 
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -16,12 +16,14 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 import { consultationService } from '../../services/consultationService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { SkeletonCard } from '../../components/ui/LoadingSkeleton';
+import { PrescriptionReportModal } from '../../components/consultation/PrescriptionReportModal';
 
 export const ConsultationDetailPage: React.FC = () => {
   const { patientId, consultationId } = useParams<{
@@ -29,6 +31,7 @@ export const ConsultationDetailPage: React.FC = () => {
     consultationId: string;
   }>();
   const navigate = useNavigate();
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // 1. Fetch full consultation details
   const {
@@ -143,6 +146,17 @@ export const ConsultationDetailPage: React.FC = () => {
               Newer
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsReportModalOpen(true)}
+            leftIcon={<FileText className="w-3.5 h-3.5 text-medical-600" />}
+            className="text-xs font-semibold text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
+            id="preview-report-btn"
+          >
+            Preview Report
+          </Button>
 
           <Button
             variant="outline"
@@ -673,6 +687,15 @@ export const ConsultationDetailPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
+            onClick={() => setIsReportModalOpen(true)}
+            leftIcon={<FileText className="w-4 h-4 text-medical-600" />}
+            className="text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
+          >
+            Preview Report
+          </Button>
+
+          <Button
+            variant="outline"
             onClick={() => navigate(`/patients/${pId}/consultation/new`)}
             leftIcon={<Stethoscope className="w-4 h-4 text-medical-600" />}
           >
@@ -690,6 +713,13 @@ export const ConsultationDetailPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* ─── Prescription Report Modal (Phase 8) ─── */}
+      <PrescriptionReportModal
+        consultationId={consultation.consultation_id}
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+      />
     </div>
   );
 };

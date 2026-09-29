@@ -19,6 +19,7 @@ from app.models.consultation import (
     ConsultationExamination,
     ConsultationDiagnosticTest,
     PrescriptionItem,
+    ConsultationReport,
 )
 
 __all__ = [
@@ -42,5 +43,6 @@ __all__ = [
     "ConsultationExamination",
     "ConsultationDiagnosticTest",
     "PrescriptionItem",
+    "ConsultationReport",
 ]
 

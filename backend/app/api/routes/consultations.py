@@ -1,17 +1,22 @@
+import os
 from datetime import datetime, timezone
 from math import ceil
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, require_roles
 from app.models.user import User, UserRole
+from app.models.consultation import ConsultationReport
 from app.schemas.consultation import (
     ConsultationCreate,
     ConsultationUpdate,
     ConsultationResponse,
     ConsultationListResponse,
     ConsultationSummaryResponse,
+    ConsultationReportResponse,
     ServerDateResponse,
 )
 from app.services.consultation_service import (
@@ -21,6 +26,7 @@ from app.services.consultation_service import (
     list_all_consultations,
     build_consultation_summary,
 )
+from app.services.report_service import generate_or_retrieve_report
 
 router = APIRouter(prefix="/consultations", tags=["Clinical Consultations"])
 
@@ -126,3 +132,178 @@ def get_consultation_detail(
             detail=f"Consultation '{consultation_id}' not found."
         )
     return ConsultationResponse.model_validate(consultation)
+
+
+def _build_report_response(report: ConsultationReport, consultation_id_str: str) -> ConsultationReportResponse:
+    resp = ConsultationReportResponse.model_validate(report)
+    resp.download_url = f"/api/consultations/{consultation_id_str}/report/download"
+    resp.preview_url = f"/api/consultations/{consultation_id_str}/report/preview"
+    return resp
+
+
+@router.post("/{consultation_id}/report", response_model=ConsultationReportResponse)
+def generate_consultation_report(
+    consultation_id: str,
+    regenerate: bool = Query(False, description="Force generate a new version of the report"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_clinical_creation),
+):
+    """
+    Generate and permanently store an A4 PDF prescription report for the consultation.
+    If a report already exists and regenerate is False, returns existing report without duplicating.
+    If regenerate is True, creates a controlled new version (v2, v3, etc.) and updates latest flag.
+    """
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found."
+        )
+
+    try:
+        report = generate_or_retrieve_report(
+            db,
+            consultation=consultation,
+            user_id=current_user.id,
+            force_regenerate=regenerate,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate prescription report: {str(e)}"
+        )
+
+    return _build_report_response(report, consultation.consultation_id)
+
+
+@router.get("/{consultation_id}/report", response_model=ConsultationReportResponse)
+def get_consultation_report_metadata(
+    consultation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve report metadata for a consultation. If no report exists yet, generates the initial version.
+    """
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found."
+        )
+
+    report = generate_or_retrieve_report(
+        db,
+        consultation=consultation,
+        user_id=current_user.id,
+        force_regenerate=False,
+    )
+    return _build_report_response(report, consultation.consultation_id)
+
+
+@router.get("/{consultation_id}/report/download")
+def download_consultation_report_pdf(
+    consultation_id: str,
+    version: Optional[int] = Query(None, description="Specific report version to download"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Securely download the persistent PDF prescription report as an attachment.
+    Requires authenticated user. Access verified against consultation and patient.
+    """
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found."
+        )
+
+    query = db.query(ConsultationReport).filter(ConsultationReport.consultation_id == consultation.id)
+    if version:
+        report = query.filter(ConsultationReport.version == version).first()
+    else:
+        report = query.filter(ConsultationReport.is_latest == True).first() or query.order_by(desc(ConsultationReport.version)).first()
+
+    if not report or not os.path.exists(report.storage_path):
+        report = generate_or_retrieve_report(db, consultation, user_id=current_user.id, force_regenerate=False)
+
+    if not os.path.exists(report.storage_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prescription report PDF file not found on server storage."
+        )
+
+    return FileResponse(
+        path=report.storage_path,
+        media_type="application/pdf",
+        filename=report.file_name,
+        headers={"Content-Disposition": f'attachment; filename="{report.file_name}"'},
+    )
+
+
+@router.get("/{consultation_id}/report/preview")
+def preview_consultation_report_pdf(
+    consultation_id: str,
+    version: Optional[int] = Query(None, description="Specific report version to preview"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Securely stream the persistent PDF prescription report inline for A4 browser preview.
+    Requires authenticated user.
+    """
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found."
+        )
+
+    query = db.query(ConsultationReport).filter(ConsultationReport.consultation_id == consultation.id)
+    if version:
+        report = query.filter(ConsultationReport.version == version).first()
+    else:
+        report = query.filter(ConsultationReport.is_latest == True).first() or query.order_by(desc(ConsultationReport.version)).first()
+
+    if not report or not os.path.exists(report.storage_path):
+        report = generate_or_retrieve_report(db, consultation, user_id=current_user.id, force_regenerate=False)
+
+    if not os.path.exists(report.storage_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prescription report PDF file not found on server storage."
+        )
+
+    return FileResponse(
+        path=report.storage_path,
+        media_type="application/pdf",
+        filename=report.file_name,
+        headers={"Content-Disposition": f'inline; filename="{report.file_name}"'},
+    )
+
+
+@router.get("/{consultation_id}/reports", response_model=List[ConsultationReportResponse])
+def list_consultation_reports(
+    consultation_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List all generated versions of reports for a given consultation.
+    """
+    consultation = get_consultation_by_id(db, consultation_id)
+    if not consultation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Consultation '{consultation_id}' not found."
+        )
+
+    reports = (
+        db.query(ConsultationReport)
+        .filter(ConsultationReport.consultation_id == consultation.id)
+        .order_by(desc(ConsultationReport.version))
+        .all()
+    )
+    return [_build_report_response(r, consultation.consultation_id) for r in reports]
+

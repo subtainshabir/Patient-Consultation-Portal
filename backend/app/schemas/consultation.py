@@ -1,6 +1,6 @@
 from datetime import datetime, date, timezone
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from app.schemas.patient import PatientResponse
 
 
@@ -191,6 +191,26 @@ class ConsultationUpdate(ConsultationCreate):
     pass
 
 
+class ConsultationReportResponse(BaseModel):
+    id: int
+    report_id: str
+    consultation_id: int
+    patient_id: int
+    file_name: str
+    storage_path: str
+    document_type: str = "Prescription Report"
+    file_size: int = 0
+    version: int = 1
+    is_latest: bool = True
+    generated_by_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    download_url: Optional[str] = None
+    preview_url: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ConsultationResponse(BaseModel):
     id: int
     consultation_id: str
@@ -226,8 +246,17 @@ class ConsultationResponse(BaseModel):
     examinations: List[ConsultationExaminationResponse] = []
     diagnostic_tests: List[ConsultationDiagnosticTestResponse] = []
     prescriptions: List[PrescriptionItemResponse] = []
+    reports: List[ConsultationReportResponse] = []
+    latest_report: Optional[ConsultationReportResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def populate_latest_report(self):
+        if self.reports and not self.latest_report:
+            latest = next((r for r in self.reports if r.is_latest), self.reports[0])
+            self.latest_report = latest
+        return self
 
 
 class ConsultationSummaryResponse(BaseModel):
@@ -252,6 +281,11 @@ class ConsultationSummaryResponse(BaseModel):
     follow_up_instructions: Optional[str] = None
     follow_up_status: Optional[str] = None
     symptoms_summary: List[str] = []
+    has_report: bool = False
+    latest_report_id: Optional[str] = None
+    latest_report_version: Optional[int] = None
+    latest_report_file_name: Optional[str] = None
+    latest_report_created_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

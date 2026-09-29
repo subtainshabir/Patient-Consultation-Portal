@@ -27,6 +27,8 @@ import {
   GitCommit,
   ArrowUpDown,
   X,
+  FileText,
+  Printer,
 } from 'lucide-react';
 
 import { patientService } from '../../services/patientService';
@@ -39,6 +41,7 @@ import { SkeletonCard } from '../../components/ui/LoadingSkeleton';
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog';
 import { ConsultationDetailModal } from '../../components/consultation/ConsultationDetailModal';
 import { PatientTimeline } from '../../components/consultation/PatientTimeline';
+import { PrescriptionReportModal } from '../../components/consultation/PrescriptionReportModal';
 import { cn } from '../../utils/cn';
 
 export const PatientProfilePage: React.FC = () => {
@@ -59,6 +62,7 @@ export const PatientProfilePage: React.FC = () => {
   const [toDate, setToDate] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showFilterBar, setShowFilterBar] = useState(false);
+  const [reportModalConsultationId, setReportModalConsultationId] = useState<string | null>(null);
 
   // Fetch patient profile
   const {
@@ -693,6 +697,7 @@ export const PatientProfilePage: React.FC = () => {
                       `/patients/${patient.patient_id}/consultation/${cId}/edit`
                     )
                   }
+                  onViewReport={(cId) => setReportModalConsultationId(cId)}
                 />
               ) : (
                 /* Cards View (Section 3) */
@@ -813,8 +818,32 @@ export const PatientProfilePage: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Action Buttons (Section 3 & 5: [View Consultation] & [Edit Consultation]) */}
+                          {/* Action Buttons (Section 3 & 5 & 42: View PDF / Generate Report & View Consultation & Edit) */}
                           <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                            {item.has_report ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setReportModalConsultationId(item.consultation_id)}
+                                leftIcon={<FileText className="w-3.5 h-3.5 text-medical-600" />}
+                                className="text-xs font-semibold text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
+                                title="View stored PDF prescription report"
+                              >
+                                View PDF
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReportModalConsultationId(item.consultation_id)}
+                                leftIcon={<Printer className="w-3.5 h-3.5 text-navy-500" />}
+                                className="text-xs text-navy-600 hover:text-navy-950"
+                                title="Generate and print PDF prescription report"
+                              >
+                                Generate Report
+                              </Button>
+                            )}
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -856,6 +885,13 @@ export const PatientProfilePage: React.FC = () => {
         onClose={() => setSelectedConsultationId(null)}
         onNavigateConsultation={(id) => setSelectedConsultationId(id)}
         allConsultations={consultationHistory}
+      />
+
+      {/* ─── PRESCRIPTION REPORT MODAL (Phase 8) ─── */}
+      <PrescriptionReportModal
+        consultationId={reportModalConsultationId}
+        isOpen={!!reportModalConsultationId}
+        onClose={() => setReportModalConsultationId(null)}
       />
 
       {/* ─── DEACTIVATION CONFIRMATION DIALOG ─── */}

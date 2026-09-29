@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -19,11 +19,13 @@ import {
   Phone,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 import { Dialog, DialogHeader, DialogContent, DialogFooter } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { consultationService } from '../../services/consultationService';
+import { PrescriptionReportModal } from './PrescriptionReportModal';
 
 export interface ConsultationDetailModalProps {
   consultationId: string | null;
@@ -41,6 +43,7 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
   allConsultations = [],
 }) => {
   const navigate = useNavigate();
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const { data: consultation, isLoading, error } = useQuery({
     queryKey: ['consultation', consultationId],
     queryFn: () => consultationService.getConsultation(consultationId!),
@@ -587,20 +590,38 @@ export const ConsultationDetailModal: React.FC<ConsultationDetailModalProps> = (
         </div>
 
         {consultation && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              onClose();
-              const pId = consultation.patient?.patient_id || consultation.patient_id;
-              navigate(`/patients/${pId}/consultation/${consultation.consultation_id}/edit`);
-            }}
-            leftIcon={<Edit3 className="w-3.5 h-3.5" />}
-          >
-            Edit Consultation
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReportOpen(true)}
+              leftIcon={<FileText className="w-3.5 h-3.5 text-medical-600" />}
+              className="text-xs font-semibold text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
+            >
+              Preview Report
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                const pId = consultation.patient?.patient_id || consultation.patient_id;
+                navigate(`/patients/${pId}/consultation/${consultation.consultation_id}/edit`);
+              }}
+              leftIcon={<Edit3 className="w-3.5 h-3.5" />}
+            >
+              Edit Consultation
+            </Button>
+          </div>
         )}
       </DialogFooter>
+
+      {/* ─── Prescription Report Modal (Phase 8) ─── */}
+      <PrescriptionReportModal
+        consultationId={consultation?.consultation_id || null}
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+      />
     </Dialog>
   );
 };

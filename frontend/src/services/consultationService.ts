@@ -3,6 +3,7 @@ import type {
   Consultation,
   ConsultationCreatePayload,
   ConsultationSummary,
+  ConsultationReport,
   ServerDateResponse,
 } from '../types/consultation';
 
@@ -25,5 +26,39 @@ export const consultationService = {
 
   async getPatientConsultations(patientId: string): Promise<ConsultationSummary[]> {
     return api.get<ConsultationSummary[]>(`/patients/${patientId}/consultations`);
+  },
+
+  async generateReport(consultationId: string, regenerate: boolean = false): Promise<ConsultationReport> {
+    return api.post<ConsultationReport>(`/consultations/${consultationId}/report?regenerate=${regenerate}`);
+  },
+
+  async getReportMetadata(consultationId: string): Promise<ConsultationReport> {
+    return api.get<ConsultationReport>(`/consultations/${consultationId}/report`);
+  },
+
+  async getReportPdfBlob(consultationId: string, version?: number): Promise<Blob> {
+    const url = version
+      ? `/consultations/${consultationId}/report/preview?version=${version}`
+      : `/consultations/${consultationId}/report/preview`;
+    return api.getBlob(url);
+  },
+
+  async downloadReportPdf(consultationId: string, fileName: string, version?: number): Promise<void> {
+    const url = version
+      ? `/consultations/${consultationId}/report/download?version=${version}`
+      : `/consultations/${consultationId}/report/download`;
+    const blob = await api.getBlob(url);
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  async listConsultationReports(consultationId: string): Promise<ConsultationReport[]> {
+    return api.get<ConsultationReport[]>(`/consultations/${consultationId}/reports`);
   },
 };

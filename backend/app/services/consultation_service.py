@@ -745,6 +745,21 @@ def build_consultation_summary(
 
     symptoms_summary = [s.symptom_name for s in consultation.symptoms] if consultation.symptoms else []
 
+    has_report = False
+    latest_report_id = None
+    latest_report_version = None
+    latest_report_file_name = None
+    latest_report_created_at = None
+
+    if consultation.reports:
+        latest = next((r for r in consultation.reports if r.is_latest), consultation.reports[0])
+        if latest:
+            has_report = True
+            latest_report_id = latest.report_id
+            latest_report_version = latest.version
+            latest_report_file_name = latest.file_name
+            latest_report_created_at = latest.created_at
+
     return ConsultationSummaryResponse(
         id=consultation.id,
         consultation_id=consultation.consultation_id,
@@ -767,5 +782,10 @@ def build_consultation_summary(
         follow_up_instructions=consultation.follow_up_instructions,
         follow_up_status=f_status,
         symptoms_summary=symptoms_summary,
+        has_report=has_report,
+        latest_report_id=latest_report_id,
+        latest_report_version=latest_report_version,
+        latest_report_file_name=latest_report_file_name,
+        latest_report_created_at=latest_report_created_at,
         created_at=consultation.created_at,
     )

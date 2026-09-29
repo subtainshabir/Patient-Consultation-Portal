@@ -122,6 +122,21 @@ export const api = {
   get: <T>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'GET' }),
 
+  getBlob: async (endpoint: string): Promise<Blob> => {
+    const token = tokenStorage.get();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${BASE_URL}${cleanEndpoint}`;
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new ApiError(`Failed to load file (${response.status})`, response.status);
+    }
+    return response.blob();
+  },
+
   post: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
