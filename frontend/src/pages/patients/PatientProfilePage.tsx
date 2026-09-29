@@ -16,10 +16,6 @@ import {
   PowerOff,
   RotateCcw,
   ChevronDown,
-  Activity,
-  Eye,
-  FlaskConical,
-  Pill,
   CalendarClock,
   Search,
   SlidersHorizontal,
@@ -29,8 +25,10 @@ import {
   X,
   FileText,
   Printer,
+  Download,
 } from 'lucide-react';
 
+import type { ConsultationSummary } from '../../types/consultation';
 import { patientService } from '../../services/patientService';
 import { consultationService } from '../../services/consultationService';
 import { useToast } from '../../hooks/useToast';
@@ -167,6 +165,24 @@ export const PatientProfilePage: React.FC = () => {
     setFromDate('');
     setToDate('');
     setSortOrder('desc');
+  };
+
+  const handleDownloadPdf = async (item: ConsultationSummary) => {
+    try {
+      const datePart = new Date(item.consultation_date).toISOString().split('T')[0];
+      const pId = patient?.patient_id || item.patient_unique_id;
+      const fileName = item.latest_report_file_name || `Prescription_${pId}_${datePart}.pdf`;
+      await consultationService.downloadReportPdf(
+        item.consultation_id,
+        fileName,
+        item.latest_report_version || undefined
+      );
+    } catch (err: unknown) {
+      toastError(
+        err instanceof Error ? err.message : 'Failed to download report PDF.',
+        'Download Failed'
+      );
+    }
   };
 
   const hasActiveFilters = Boolean(searchTerm || fromDate || toDate || sortOrder !== 'desc');
@@ -691,13 +707,13 @@ export const PatientProfilePage: React.FC = () => {
                 /* Timeline View (Section 8) */
                 <PatientTimeline
                   consultations={filteredConsultations}
-                  onSelectConsultation={(cId) => setSelectedConsultationId(cId)}
+                  onViewReport={(cId) => setReportModalConsultationId(cId)}
                   onEditConsultation={(cId) =>
                     navigate(
                       `/patients/${patient.patient_id}/consultation/${cId}/edit`
                     )
                   }
-                  onViewReport={(cId) => setReportModalConsultationId(cId)}
+                  onDownloadReport={handleDownloadPdf}
                 />
               ) : (
                 /* Cards View (Section 3) */
@@ -764,62 +780,35 @@ export const PatientProfilePage: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Line 2: Selected Symptoms (Section 3: Symptoms: Headache, Dizziness) */}
-                            {item.symptoms_summary && item.symptoms_summary.length > 0 ? (
-                              <p className="text-xs text-navy-700 font-medium">
-                                <strong className="text-navy-900">Symptoms:</strong>{' '}
-                                {item.symptoms_summary.join(', ')}
-                              </p>
-                            ) : item.symptom_count > 0 ? (
-                              <p className="text-xs text-navy-600">
-                                <strong className="text-navy-900">Symptoms:</strong> {item.symptom_count} recorded
-                              </p>
-                            ) : null}
-
-                            {/* Line 3: Tests count, Medicines count, Vitals, Follow-Up date (Section 3) */}
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600 pt-0.5">
-                              {item.bp_formatted && (
-                                <span className="inline-flex items-center gap-1 font-mono text-navy-800 font-medium">
-                                  <Activity className="w-3 h-3 text-medical-600" />
-                                  {item.bp_formatted}
-                                </span>
-                              )}
-                              {item.pulse_rate && <span>{item.pulse_rate} bpm</span>}
-                              {item.temperature && <span>{item.temperature} °C</span>}
-
-                              {/* Tests count */}
-                              {item.diagnostic_test_count !== undefined && item.diagnostic_test_count > 0 && (
-                                <span className="inline-flex items-center gap-1 font-medium text-navy-700 bg-navy-50 px-2 py-0.5 rounded-md border border-navy-200">
-                                  <FlaskConical className="w-3 h-3 text-medical-600" />
-                                  Tests: {item.diagnostic_test_count}
-                                </span>
-                              )}
-
-                              {/* Medicines count */}
-                              {item.prescription_count !== undefined && item.prescription_count > 0 && (
-                                <span className="inline-flex items-center gap-1 font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                  <Pill className="w-3 h-3 text-emerald-600" />
-                                  Medicines: {item.prescription_count}
-                                </span>
-                              )}
-
-                              {/* Follow-up date / period */}
-                              {item.follow_up_date && (
-                                <span className="inline-flex items-center gap-1 font-medium text-sky-800">
-                                  <CalendarClock className="w-3 h-3 text-sky-600" />
-                                  Follow-up:{' '}
-                                  {new Date(item.follow_up_date).toLocaleDateString('en-GB', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric',
-                                  })}
-                                </span>
-                              )}
-                            </div>
+                            {/* Follow-Up Details if present */}
+                            {(item.follow_up_date || item.follow_up_period || item.follow_up_instructions) && (
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-navy-600 pt-0.5">
+                                {item.follow_up_period && (
+                                  <span className="font-medium text-navy-800">
+                                    {item.follow_up_period}
+                                  </span>
+                                )}
+                                {item.follow_up_date && (
+                                  <span className="inline-flex items-center gap-1 text-sky-800 font-medium">
+                                    <CalendarClock className="w-3 h-3 text-sky-600" />
+                                    {new Date(item.follow_up_date).toLocaleDateString('en-GB', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
+                                )}
+                                {item.follow_up_instructions && (
+                                  <span className="text-navy-500 italic line-clamp-1">
+                                    ({item.follow_up_instructions})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
-                          {/* Action Buttons (Section 3 & 5 & 42: View PDF / Generate Report & View Consultation & Edit) */}
-                          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                          {/* Action Buttons: [View Report] [Edit] [Download PDF] */}
+                          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
                             {item.has_report ? (
                               <Button
                                 variant="outline"
@@ -828,8 +817,9 @@ export const PatientProfilePage: React.FC = () => {
                                 leftIcon={<FileText className="w-3.5 h-3.5 text-medical-600" />}
                                 className="text-xs font-semibold text-medical-800 border-medical-200 bg-medical-50/50 hover:bg-medical-100"
                                 title="View stored PDF prescription report"
+                                id={`view-report-${item.consultation_id}`}
                               >
-                                View PDF
+                                View Report
                               </Button>
                             ) : (
                               <Button
@@ -838,21 +828,13 @@ export const PatientProfilePage: React.FC = () => {
                                 onClick={() => setReportModalConsultationId(item.consultation_id)}
                                 leftIcon={<Printer className="w-3.5 h-3.5 text-navy-500" />}
                                 className="text-xs text-navy-600 hover:text-navy-950"
-                                title="Generate and print PDF prescription report"
+                                title="Generate PDF prescription report"
+                                id={`generate-report-${item.consultation_id}`}
                               >
                                 Generate Report
                               </Button>
                             )}
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedConsultationId(item.consultation_id)}
-                              leftIcon={<Eye className="w-3.5 h-3.5" />}
-                              className="text-xs"
-                            >
-                              View Consultation
-                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -863,9 +845,25 @@ export const PatientProfilePage: React.FC = () => {
                               }
                               leftIcon={<Edit3 className="w-3.5 h-3.5 text-navy-500" />}
                               className="text-xs text-navy-600 hover:text-navy-950"
+                              title="Edit consultation"
+                              id={`edit-${item.consultation_id}`}
                             >
                               Edit
                             </Button>
+
+                            {item.has_report && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadPdf(item)}
+                                leftIcon={<Download className="w-3.5 h-3.5 text-navy-600" />}
+                                className="text-xs text-navy-700 hover:text-navy-950 border-navy-200 hover:bg-navy-50"
+                                title="Download stored PDF report"
+                                id={`download-pdf-${item.consultation_id}`}
+                              >
+                                Download PDF
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
